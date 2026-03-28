@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>僑生返宿登記系統</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>🏠 僑生返宿登記系統</h1>
+  <nav class="header-nav">
+    <a href="index.html" class="nav-link active" data-page="home">首頁</a>
+    <a href="scan.html" class="nav-link" data-page="scan">掃碼登記</a>
+    <a href="students.html" class="nav-link" data-page="students">學生管理</a>
+    <a href="report.html" class="nav-link" data-page="report">統計報表</a>
+    <a href="import.html" class="nav-link" data-page="import">匯入資料</a>
+  </nav>
+</header>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-link active" data-page="home"><span class="icon">🏠</span>首頁</a>
+  <a href="scan.html" class="nav-link" data-page="scan"><span class="icon">📷</span>掃碼</a>
+  <a href="students.html" class="nav-link" data-page="students"><span class="icon">👥</span>學生</a>
+  <a href="report.html" class="nav-link" data-page="report"><span class="icon">📊</span>報表</a>
+  <a href="import.html" class="nav-link" data-page="import"><span class="icon">📂</span>匯入</a>
+</nav>
+
+<div id="toast"></div>
+
+<div class="container">
+  <!-- 日期時間 -->
+  <div class="flex-between mb-2">
+    <div class="page-title">今日概況</div>
+    <div id="clock" style="font-size:.9rem;color:#666;"></div>
+  </div>
+
+  <!-- 統計卡片 -->
+  <div class="stats-grid">
+    <div class="stat-card blue">
+      <div class="stat-num" id="stat-total">-</div>
+      <div class="stat-label">住宿人數</div>
+    </div>
+    <div class="stat-card green">
+      <div class="stat-num" id="stat-checkin">-</div>
+      <div class="stat-label">已返宿</div>
+    </div>
+    <div class="stat-card red">
+      <div class="stat-num" id="stat-missing">-</div>
+      <div class="stat-label">未返宿</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="stat-num" id="stat-late">-</div>
+      <div class="stat-label">逾時返宿</div>
+    </div>
+  </div>
+
+  <!-- 快捷按鈕 -->
+  <div class="card">
+    <div class="card-title">快速操作</div>
+    <div class="grid-2">
+      <a href="scan.html" class="btn btn-primary btn-lg btn-block">📷 開始掃碼登記</a>
+      <a href="report.html" class="btn btn-outline btn-lg btn-block">📊 查看今日報表</a>
+    </div>
+    <div class="grid-2 mt-1">
+      <a href="students.html" class="btn btn-outline btn-block">👥 學生名冊 + QR 碼</a>
+      <a href="import.html" class="btn btn-outline btn-block">📂 匯入學生資料</a>
+    </div>
+  </div>
+
+  <!-- 今日返宿紀錄 -->
+  <div class="card">
+    <div class="flex-between">
+      <div class="card-title" style="margin-bottom:0">今日返宿紀錄</div>
+      <button class="btn btn-sm btn-outline no-print" onclick="location.reload()">↻ 重新整理</button>
+    </div>
+    <div class="table-wrap mt-2">
+      <table>
+        <thead>
+          <tr><th>時間</th><th>姓名</th><th>班級</th><th>房號</th><th>狀態</th></tr>
+        </thead>
+        <tbody id="today-records">
+          <tr><td colspan="5" class="text-center" style="padding:2rem;color:#999">尚無今日紀錄</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 未返宿名單 -->
+  <div class="card" id="missing-section" style="display:none">
+    <div class="card-title">⚠ 未返宿名單</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>姓名</th><th>英文名</th><th>班級</th><th>房號</th><th>國籍</th></tr>
+        </thead>
+        <tbody id="missing-list"></tbody>
+      </table>
+    </div>
+    <div class="text-right mt-1 no-print">
+      <button class="btn btn-sm btn-outline" onclick="exportMissing()">匯出 CSV</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+let missingStudents = [];
+
+function updateClock() {
+  const d = new Date();
+  document.getElementById('clock').textContent =
+    `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ` +
+    `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}:${d.getSeconds().toString().padStart(2,'0')}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function loadDashboard() {
+  const stats = DB.records.getTodayStats();
+  document.getElementById('stat-total').textContent = stats.total;
+  document.getElementById('stat-checkin').textContent = stats.checkedIn;
+  document.getElementById('stat-missing').textContent = stats.notIn.length;
+  document.getElementById('stat-late').textContent = stats.late;
+
+  // Today records
+  const tbody = document.getElementById('today-records');
+  if (stats.records.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center" style="padding:2rem;color:#999">尚無今日紀錄</td></tr>';
+  } else {
+    tbody.innerHTML = stats.records.slice(0, 30).map(r => `
+      <tr>
+        <td>${r.time}</td>
+        <td>${r.name || ''}${r.name ? '' : r.engName}</td>
+        <td>${r.className}</td>
+        <td>${r.building || ''}${r.roomNo || ''}-${r.bedNo || ''}</td>
+        <td>${resultBadge(r.result)}</td>
+      </tr>`).join('');
+  }
+
+  // Missing
+  missingStudents = stats.notIn;
+  const section = document.getElementById('missing-section');
+  if (missingStudents.length > 0) {
+    section.style.display = '';
+    document.getElementById('missing-list').innerHTML = missingStudents.map(s => `
+      <tr>
+        <td>${s.name || '-'}</td>
+        <td style="font-size:.82rem">${s.engName}</td>
+        <td>${s.className}</td>
+        <td>${s.building || ''}${s.roomNo || ''}-${s.bedNo || ''}</td>
+        <td>${nationalityFlag(s.nationality)} ${s.nationality}</td>
+      </tr>`).join('');
+  } else {
+    section.style.display = 'none';
+  }
+}
+
+function exportMissing() {
+  const headers = ['學號','姓名','英文名','班級','棟','房號','床號','國籍'];
+  const rows = missingStudents.map(s => [s.id, s.name||'', s.engName, s.className, s.building||'', s.roomNo||'', s.bedNo||'', s.nationality]);
+  const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n');
+  downloadFile(csv, `未返宿名單_${DB.today()}.csv`, 'text/csv');
+}
+
+loadDashboard();
+
+// Auto refresh every 30s
+setInterval(loadDashboard, 30000);
+</script>
+</body>
+</html>

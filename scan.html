@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>掃碼返宿登記 - 僑生返宿系統</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+#qr-reader { width: 100%; max-width: 480px; margin: 0 auto; }
+#qr-reader video { border-radius: 8px; }
+.result-box {
+  border-radius: 10px;
+  padding: 1.2rem;
+  margin-top: 1rem;
+  text-align: center;
+  display: none;
+}
+.result-box.show { display: block; }
+.result-box.success { background: #d4edda; border: 3px solid #28a745; }
+.result-box.error   { background: #f8d7da; border: 3px solid #dc3545; }
+.result-box.warning { background: #fff3cd; border: 3px solid #ffc107; }
+.result-icon { font-size: 2.5rem; margin-bottom: .5rem; }
+.result-name { font-size: 1.4rem; font-weight: 700; margin: .3rem 0; }
+.result-sub  { font-size: .9rem; color: #555; }
+.result-msg  { font-size: 1rem; font-weight: 600; margin-top: .5rem; }
+.scan-btn-area { display: flex; gap: .8rem; justify-content: center; margin-top: 1rem; }
+.manual-section { margin-top: 1.2rem; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>📷 掃碼返宿登記</h1>
+  <nav class="header-nav">
+    <a href="index.html" class="nav-link" data-page="home">首頁</a>
+    <a href="scan.html" class="nav-link active" data-page="scan">掃碼登記</a>
+    <a href="students.html" class="nav-link" data-page="students">學生管理</a>
+    <a href="report.html" class="nav-link" data-page="report">統計報表</a>
+    <a href="import.html" class="nav-link" data-page="import">匯入資料</a>
+  </nav>
+</header>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-link" data-page="home"><span class="icon">🏠</span>首頁</a>
+  <a href="scan.html" class="nav-link active" data-page="scan"><span class="icon">📷</span>掃碼</a>
+  <a href="students.html" class="nav-link" data-page="students"><span class="icon">👥</span>學生</a>
+  <a href="report.html" class="nav-link" data-page="report"><span class="icon">📊</span>報表</a>
+  <a href="import.html" class="nav-link" data-page="import"><span class="icon">📂</span>匯入</a>
+</nav>
+
+<div id="toast"></div>
+
+<div class="scan-container">
+  <!-- 掃碼設定列 -->
+  <div class="card">
+    <div class="grid-2">
+      <div class="form-group" style="margin:0">
+        <label class="form-label">值班人員</label>
+        <input type="text" id="operator" class="form-control" value="管理員" placeholder="輸入姓名">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label class="form-label">掃碼地點</label>
+        <input type="text" id="location" class="form-control" placeholder="例：大門口">
+      </div>
+    </div>
+  </div>
+
+  <!-- QR 掃碼區 -->
+  <div class="card">
+    <div class="card-title">🎯 掃描學生 QR Code</div>
+    <div id="qr-reader"></div>
+    <div class="scan-btn-area">
+      <button class="btn btn-primary" id="btn-start" onclick="startScan()">▶ 開始掃碼</button>
+      <button class="btn btn-danger hidden" id="btn-stop" onclick="stopScan()">■ 停止</button>
+    </div>
+  </div>
+
+  <!-- 掃碼結果 -->
+  <div class="result-box" id="result-box">
+    <div class="result-icon" id="result-icon"></div>
+    <div class="result-name" id="result-name"></div>
+    <div class="result-sub" id="result-sub"></div>
+    <div class="result-msg" id="result-msg"></div>
+    <button class="btn btn-primary mt-2" onclick="resetResult()">繼續掃碼</button>
+  </div>
+
+  <!-- 手動輸入備援 -->
+  <div class="card manual-section">
+    <div class="card-title">✍️ 手動輸入（備援）</div>
+    <div class="form-group">
+      <label class="form-label">輸入學號</label>
+      <input type="text" id="manual-id" class="form-control" placeholder="輸入學號，例：318079" maxlength="10">
+    </div>
+    <button class="btn btn-primary btn-block" onclick="manualCheckin()">確認登記</button>
+  </div>
+
+  <!-- 今日快速統計 -->
+  <div class="card">
+    <div class="card-title">今日返宿統計</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr)">
+      <div class="stat-card green"><div class="stat-num" id="q-checkin">-</div><div class="stat-label">已返宿</div></div>
+      <div class="stat-card red"><div class="stat-num" id="q-missing">-</div><div class="stat-label">未返宿</div></div>
+      <div class="stat-card orange"><div class="stat-num" id="q-late">-</div><div class="stat-label">逾時</div></div>
+    </div>
+    <button class="btn btn-sm btn-outline btn-block mt-1" onclick="updateQuickStats()">↻ 更新</button>
+  </div>
+</div>
+
+<!-- html5-qrcode CDN -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+let scanner = null;
+let scanning = false;
+let resultLocked = false;
+
+function startScan() {
+  if (scanning) return;
+  resultLocked = false;
+  document.getElementById('result-box').classList.remove('show');
+
+  scanner = new Html5Qrcode('qr-reader');
+  scanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 240, height: 240 } },
+    onScanSuccess,
+    err => {}
+  ).then(() => {
+    scanning = true;
+    document.getElementById('btn-start').classList.add('hidden');
+    document.getElementById('btn-stop').classList.remove('hidden');
+  }).catch(err => {
+    showToast('無法開啟鏡頭：' + err, 'error');
+  });
+}
+
+function stopScan() {
+  if (!scanner || !scanning) return;
+  scanner.stop().then(() => {
+    scanning = false;
+    document.getElementById('btn-start').classList.remove('hidden');
+    document.getElementById('btn-stop').classList.add('hidden');
+  });
+}
+
+function onScanSuccess(code) {
+  if (resultLocked) return;
+  resultLocked = true;
+  processCode(code);
+  // Auto-unlock after 3s for next scan
+  setTimeout(() => {
+    resultLocked = false;
+  }, 3000);
+}
+
+function processCode(code) {
+  const student = DB.students.getByToken(code.trim());
+  if (!student) {
+    showResult('error', '❌', '無效 QR Code', code, '查無此學生，請確認 QR Code 是否正確');
+    return;
+  }
+  if (student.status !== '在住') {
+    showResult('warning', '⚠️', student.name || student.engName,
+      `${student.className} | ${student.building || ''}${student.roomNo || ''}`,
+      `學生狀態：${student.status}，非住宿中學生`);
+    return;
+  }
+
+  const op = document.getElementById('operator').value || '管理員';
+  const loc = document.getElementById('location').value || '';
+  const res = DB.records.add(student.id, { operator: op, location: loc });
+
+  if (!res) {
+    showResult('error', '❌', '系統錯誤', '', '無法寫入紀錄');
+    return;
+  }
+  if (res.isDuplicate) {
+    showResult('warning', '↺', student.name || student.engName,
+      `${student.className} | ${student.building || ''}${student.roomNo || ''}-${student.bedNo || ''}`,
+      `⚠ 今日 ${res.record.time} 已登記過`);
+    return;
+  }
+
+  const isLate = res.record.result === 'late';
+  showResult(
+    isLate ? 'warning' : 'success',
+    isLate ? '⚠️' : '✅',
+    student.name || student.engName,
+    `${student.className} | ${student.building || ''}${student.roomNo || ''}-${student.bedNo || ''} | ${nationalityFlag(student.nationality)} ${student.nationality}`,
+    isLate ? `逾時返宿 ${res.record.time}` : `✓ 返宿登記成功 ${res.record.time}`
+  );
+  updateQuickStats();
+}
+
+function showResult(type, icon, name, sub, msg) {
+  const box = document.getElementById('result-box');
+  box.className = `result-box show ${type}`;
+  document.getElementById('result-icon').textContent = icon;
+  document.getElementById('result-name').textContent = name;
+  document.getElementById('result-sub').textContent = sub;
+  document.getElementById('result-msg').textContent = msg;
+}
+
+function resetResult() {
+  document.getElementById('result-box').classList.remove('show');
+  resultLocked = false;
+  if (!scanning) startScan();
+}
+
+function manualCheckin() {
+  const val = document.getElementById('manual-id').value.trim();
+  if (!val) { showToast('請輸入學號', 'warning'); return; }
+  const student = DB.students.getById(val);
+  if (!student) { showToast('查無此學號：' + val, 'error'); return; }
+  processCode(student.token);
+  document.getElementById('manual-id').value = '';
+}
+
+function updateQuickStats() {
+  const stats = DB.records.getTodayStats();
+  document.getElementById('q-checkin').textContent = stats.checkedIn;
+  document.getElementById('q-missing').textContent = stats.notIn.length;
+  document.getElementById('q-late').textContent = stats.late;
+}
+
+// Enter key for manual input
+document.getElementById('manual-id').addEventListener('keydown', e => {
+  if (e.key === 'Enter') manualCheckin();
+});
+
+updateQuickStats();
+</script>
+</body>
+</html>

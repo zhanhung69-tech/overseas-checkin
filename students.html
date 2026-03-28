@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>學生名冊 - 僑生返宿系統</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.filter-bar { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1rem; }
+.filter-bar input, .filter-bar select { flex: 1; min-width: 120px; }
+.student-row td { vertical-align: middle; }
+.qr-mini { width: 36px; height: 36px; }
+.token-mono { font-family: monospace; font-size: .78rem; color: #888; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>👥 學生名冊</h1>
+  <nav class="header-nav">
+    <a href="index.html" class="nav-link" data-page="home">首頁</a>
+    <a href="scan.html" class="nav-link" data-page="scan">掃碼登記</a>
+    <a href="students.html" class="nav-link active" data-page="students">學生管理</a>
+    <a href="report.html" class="nav-link" data-page="report">統計報表</a>
+    <a href="import.html" class="nav-link" data-page="import">匯入資料</a>
+  </nav>
+</header>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-link" data-page="home"><span class="icon">🏠</span>首頁</a>
+  <a href="scan.html" class="nav-link" data-page="scan"><span class="icon">📷</span>掃碼</a>
+  <a href="students.html" class="nav-link active" data-page="students"><span class="icon">👥</span>學生</a>
+  <a href="report.html" class="nav-link" data-page="report"><span class="icon">📊</span>報表</a>
+  <a href="import.html" class="nav-link" data-page="import"><span class="icon">📂</span>匯入</a>
+</nav>
+
+<div id="toast"></div>
+
+<div class="container">
+  <div class="flex-between mb-2">
+    <div class="page-title">學生名冊管理</div>
+    <div class="flex" style="gap:.5rem">
+      <button class="btn btn-outline btn-sm" onclick="printAllQR()">🖨 列印 QR 卡</button>
+      <button class="btn btn-outline btn-sm" onclick="exportStudents()">⬇ 匯出 CSV</button>
+    </div>
+  </div>
+
+  <!-- 篩選 -->
+  <div class="card">
+    <div class="filter-bar">
+      <input type="text" id="search" class="form-control" placeholder="搜尋姓名 / 學號 / 英文名">
+      <select id="filter-class" class="form-control">
+        <option value="">所有班級</option>
+      </select>
+      <select id="filter-nat" class="form-control">
+        <option value="">所有國籍</option>
+      </select>
+      <select id="filter-status" class="form-control">
+        <option value="">所有狀態</option>
+        <option value="在住">在住</option>
+        <option value="工場實習">工場實習</option>
+      </select>
+      <select id="filter-building" class="form-control">
+        <option value="">所有宿舍</option>
+      </select>
+    </div>
+    <div id="filter-info" style="font-size:.82rem;color:#666"></div>
+  </div>
+
+  <!-- 學生列表 -->
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>學號</th>
+            <th>姓名</th>
+            <th>英文名</th>
+            <th>班級</th>
+            <th>國籍</th>
+            <th>宿舍/房號</th>
+            <th>狀態</th>
+            <th>識別碼</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="student-list"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- QR 詳情 Modal -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal-box text-center">
+    <div class="modal-header">
+      <strong id="modal-title">學生識別卡</strong>
+      <button class="modal-close" onclick="closeModal('qr-modal')">✕</button>
+    </div>
+    <div id="modal-qr" style="display:flex;justify-content:center;margin:1rem 0"></div>
+    <div id="modal-info"></div>
+    <div class="flex mt-2" style="justify-content:center;gap:.5rem">
+      <button class="btn btn-primary btn-sm" onclick="printSingleQR()">🖨 列印</button>
+      <button class="btn btn-outline btn-sm" onclick="closeModal('qr-modal')">關閉</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+let allStudents = [];
+let currentStudentId = null;
+
+function loadStudents() {
+  allStudents = DB.students.getAll();
+
+  // Populate filters
+  const classes = DB.students.getClasses();
+  const classSelect = document.getElementById('filter-class');
+  const current = classSelect.value;
+  classSelect.innerHTML = '<option value="">所有班級</option>' +
+    classes.map(c => `<option value="${c}">${c}</option>`).join('');
+  classSelect.value = current;
+
+  const nats = [...new Set(allStudents.map(s => s.nationality))].sort();
+  const natSelect = document.getElementById('filter-nat');
+  const natCurrent = natSelect.value;
+  natSelect.innerHTML = '<option value="">所有國籍</option>' +
+    nats.map(n => `<option value="${n}">${nationalityFlag(n)} ${n}</option>`).join('');
+  natSelect.value = natCurrent;
+
+  const buildings = DB.students.getBuildings();
+  const bldSelect = document.getElementById('filter-building');
+  const bldCurrent = bldSelect.value;
+  bldSelect.innerHTML = '<option value="">所有宿舍</option>' +
+    buildings.map(b => `<option value="${b}">${b}</option>`).join('');
+  bldSelect.value = bldCurrent;
+
+  filterStudents();
+}
+
+function filterStudents() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const cls = document.getElementById('filter-class').value;
+  const nat = document.getElementById('filter-nat').value;
+  const sts = document.getElementById('filter-status').value;
+  const bld = document.getElementById('filter-building').value;
+
+  const filtered = allStudents.filter(s => {
+    if (cls && s.className !== cls) return false;
+    if (nat && s.nationality !== nat) return false;
+    if (sts && s.status !== sts) return false;
+    if (bld && s.building !== bld) return false;
+    if (q) {
+      const hay = `${s.id} ${s.name||''} ${s.engName} ${s.roomNo||''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
+  document.getElementById('filter-info').textContent = `顯示 ${filtered.length} / ${allStudents.length} 位學生`;
+  renderList(filtered);
+}
+
+function renderList(list) {
+  const tbody = document.getElementById('student-list');
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding:2rem;color:#999">查無符合學生</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(s => `
+    <tr class="student-row">
+      <td><code style="font-size:.8rem">${s.id}</code></td>
+      <td>${s.name || '-'}</td>
+      <td style="font-size:.82rem">${s.engName}</td>
+      <td>${s.className}</td>
+      <td>${nationalityFlag(s.nationality)} ${s.nationality}</td>
+      <td>${s.building || ''}${s.roomNo ? s.roomNo : ''}-${s.bedNo || ''}</td>
+      <td><span class="badge ${s.status === '在住' ? 'badge-success' : 'badge-warning'}">${s.status}</span></td>
+      <td class="token-mono">${s.token}</td>
+      <td>
+        <button class="btn btn-sm btn-primary" onclick="showQR('${s.id}')">QR</button>
+      </td>
+    </tr>`).join('');
+}
+
+function showQR(id) {
+  currentStudentId = id;
+  const s = DB.students.getById(id);
+  if (!s) return;
+
+  document.getElementById('modal-title').textContent = (s.name || s.engName) + ' 識別卡';
+  const qrDiv = document.getElementById('modal-qr');
+  qrDiv.innerHTML = '<div id="modal-qr-inner"></div>';
+  new QRCode(document.getElementById('modal-qr-inner'), {
+    text: s.token,
+    width: 180,
+    height: 180,
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+
+  document.getElementById('modal-info').innerHTML = `
+    <div style="margin-top:.8rem">
+      <p style="font-size:1.1rem;font-weight:700">${s.name || ''}</p>
+      <p style="font-size:.9rem;color:#555">${s.engName}</p>
+      <p style="margin-top:.3rem">${s.className} &nbsp;|&nbsp; ${s.building||''}${s.roomNo||''}-${s.bedNo||''}</p>
+      <p>${nationalityFlag(s.nationality)} ${s.nationality} &nbsp;|&nbsp; ${s.gender || ''}</p>
+      <p class="token-mono" style="margin-top:.5rem">${s.token}</p>
+    </div>`;
+
+  openModal('qr-modal');
+}
+
+function printSingleQR() {
+  if (currentStudentId) printQRCards([currentStudentId]);
+}
+
+function printAllQR() {
+  printQRCards();
+}
+
+function exportStudents() {
+  const headers = ['學號','姓名','英文名','班級','國籍','性別','棟','房號','床號','狀態','識別碼'];
+  const rows = allStudents.map(s => [
+    s.id, s.name||'', s.engName, s.className, s.nationality, s.gender||'',
+    s.building||'', s.roomNo||'', s.bedNo||'', s.status, s.token
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c=>`"${c}"`).join(',')).join('\n');
+  downloadFile(csv, `學生名冊_${DB.today()}.csv`, 'text/csv');
+}
+
+// Event listeners
+['search','filter-class','filter-nat','filter-status','filter-building'].forEach(id => {
+  document.getElementById(id).addEventListener('input', filterStudents);
+});
+
+// Close modal on overlay click
+document.getElementById('qr-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal('qr-modal');
+});
+
+loadStudents();
+</script>
+</body>
+</html>

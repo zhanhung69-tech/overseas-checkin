@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>統計報表 - 僑生返宿系統</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>📊 統計報表</h1>
+  <nav class="header-nav">
+    <a href="index.html" class="nav-link" data-page="home">首頁</a>
+    <a href="scan.html" class="nav-link" data-page="scan">掃碼登記</a>
+    <a href="students.html" class="nav-link" data-page="students">學生管理</a>
+    <a href="report.html" class="nav-link active" data-page="report">統計報表</a>
+    <a href="import.html" class="nav-link" data-page="import">匯入資料</a>
+  </nav>
+</header>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-link" data-page="home"><span class="icon">🏠</span>首頁</a>
+  <a href="scan.html" class="nav-link" data-page="scan"><span class="icon">📷</span>掃碼</a>
+  <a href="students.html" class="nav-link" data-page="students"><span class="icon">👥</span>學生</a>
+  <a href="report.html" class="nav-link active" data-page="report"><span class="icon">📊</span>報表</a>
+  <a href="import.html" class="nav-link" data-page="import"><span class="icon">📂</span>匯入</a>
+</nav>
+
+<div id="toast"></div>
+
+<div class="container">
+  <div class="page-title">返宿統計報表</div>
+
+  <!-- 日期選擇 -->
+  <div class="card">
+    <div class="flex-between">
+      <div class="flex" style="gap:.5rem;flex-wrap:wrap">
+        <input type="date" id="report-date" class="form-control" style="width:160px">
+        <button class="btn btn-primary" onclick="loadReport()">查詢</button>
+        <button class="btn btn-outline" onclick="setToday()">今日</button>
+      </div>
+      <div class="flex no-print" style="gap:.5rem">
+        <button class="btn btn-outline btn-sm" onclick="exportReport()">⬇ 匯出紀錄</button>
+        <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 列印</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 摘要統計 -->
+  <div class="stats-grid">
+    <div class="stat-card blue"><div class="stat-num" id="s-total">-</div><div class="stat-label">住宿總數</div></div>
+    <div class="stat-card green"><div class="stat-num" id="s-in">-</div><div class="stat-label">已返宿</div></div>
+    <div class="stat-card red"><div class="stat-num" id="s-out">-</div><div class="stat-label">未返宿</div></div>
+    <div class="stat-card orange"><div class="stat-num" id="s-late">-</div><div class="stat-label">逾時返宿</div></div>
+  </div>
+
+  <!-- 班級統計 -->
+  <div class="card">
+    <div class="card-title">班級別統計</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>班級</th><th>住宿人數</th><th>已返宿</th><th>未返宿</th><th>返宿率</th></tr></thead>
+        <tbody id="class-stats"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 國籍統計 -->
+  <div class="card">
+    <div class="card-title">國籍別統計</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>國籍</th><th>住宿人數</th><th>已返宿</th><th>未返宿</th><th>返宿率</th></tr></thead>
+        <tbody id="nat-stats"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 未返宿名單 -->
+  <div class="card" id="missing-card">
+    <div class="flex-between">
+      <div class="card-title" style="margin:0">⚠ 未返宿名單</div>
+      <button class="btn btn-sm btn-outline no-print" onclick="exportMissing()">匯出</button>
+    </div>
+    <div class="table-wrap mt-2">
+      <table>
+        <thead><tr><th>班級</th><th>姓名</th><th>英文名</th><th>宿舍/房號</th><th>國籍</th><th>電話</th></tr></thead>
+        <tbody id="missing-table"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 所有掃碼紀錄 -->
+  <div class="card">
+    <div class="card-title">掃碼紀錄明細</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>時間</th><th>學號</th><th>姓名</th><th>班級</th><th>房號</th><th>國籍</th><th>結果</th></tr>
+        </thead>
+        <tbody id="record-detail"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+let currentStats = null;
+let currentDate = '';
+
+function setToday() {
+  document.getElementById('report-date').value = DB.today();
+  loadReport();
+}
+
+function loadReport() {
+  const dateInput = document.getElementById('report-date').value;
+  currentDate = dateInput || DB.today();
+
+  const allStudents = DB.students.getResident();
+  const recs = DB.records.getByDate(currentDate);
+  const checkedIds = new Set(recs.filter(r => r.result !== 'invalid').map(r => r.studentId));
+
+  const notIn = allStudents.filter(s => !checkedIds.has(s.id));
+  const lateCount = recs.filter(r => r.result === 'late').length;
+
+  currentStats = { allStudents, recs, checkedIds, notIn, lateCount };
+
+  // Summary
+  document.getElementById('s-total').textContent = allStudents.length;
+  document.getElementById('s-in').textContent = checkedIds.size;
+  document.getElementById('s-out').textContent = notIn.length;
+  document.getElementById('s-late').textContent = lateCount;
+
+  // Class stats
+  const classes = [...new Set(allStudents.map(s => s.className))].sort();
+  document.getElementById('class-stats').innerHTML = classes.map(cls => {
+    const clsStudents = allStudents.filter(s => s.className === cls);
+    const inCount = clsStudents.filter(s => checkedIds.has(s.id)).length;
+    const outCount = clsStudents.length - inCount;
+    const rate = clsStudents.length ? Math.round(inCount / clsStudents.length * 100) : 0;
+    return `<tr>
+      <td>${cls}</td>
+      <td>${clsStudents.length}</td>
+      <td style="color:#28a745;font-weight:600">${inCount}</td>
+      <td style="color:#dc3545;font-weight:600">${outCount}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:.5rem">
+          <div style="flex:1;height:8px;background:#eee;border-radius:4px;min-width:60px">
+            <div style="width:${rate}%;height:100%;background:${rate>=80?'#28a745':rate>=50?'#ffc107':'#dc3545'};border-radius:4px"></div>
+          </div>
+          <span style="font-size:.85rem">${rate}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Nationality stats
+  const nats = [...new Set(allStudents.map(s => s.nationality))].sort();
+  document.getElementById('nat-stats').innerHTML = nats.map(nat => {
+    const natStudents = allStudents.filter(s => s.nationality === nat);
+    const inCount = natStudents.filter(s => checkedIds.has(s.id)).length;
+    const rate = natStudents.length ? Math.round(inCount / natStudents.length * 100) : 0;
+    return `<tr>
+      <td>${nationalityFlag(nat)} ${nat}</td>
+      <td>${natStudents.length}</td>
+      <td style="color:#28a745;font-weight:600">${inCount}</td>
+      <td style="color:#dc3545;font-weight:600">${natStudents.length - inCount}</td>
+      <td>${rate}%</td>
+    </tr>`;
+  }).join('');
+
+  // Missing list
+  document.getElementById('missing-table').innerHTML = notIn.length ? notIn.map(s => `
+    <tr>
+      <td>${s.className}</td>
+      <td>${s.name || '-'}</td>
+      <td style="font-size:.82rem">${s.engName}</td>
+      <td>${s.building||''}${s.roomNo||''}-${s.bedNo||''}</td>
+      <td>${nationalityFlag(s.nationality)} ${s.nationality}</td>
+      <td style="font-size:.82rem">${s.phone || '-'}</td>
+    </tr>`).join('') :
+    '<tr><td colspan="6" class="text-center" style="color:#28a745;padding:1rem">🎉 所有學生已返宿</td></tr>';
+
+  // Record detail
+  document.getElementById('record-detail').innerHTML = recs.length ? recs.map(r => `
+    <tr>
+      <td>${r.time}</td>
+      <td><code style="font-size:.78rem">${r.studentId}</code></td>
+      <td>${r.name || '-'}</td>
+      <td>${r.className}</td>
+      <td>${r.building||''}${r.roomNo||''}-${r.bedNo||''}</td>
+      <td>${r.nationality || '-'}</td>
+      <td>${resultBadge(r.result)}</td>
+    </tr>`).join('') :
+    '<tr><td colspan="7" class="text-center" style="color:#999;padding:1rem">本日尚無返宿紀錄</td></tr>';
+}
+
+function exportReport() {
+  const csv = DB.records.exportCSV(currentDate);
+  downloadFile(csv, `返宿紀錄_${currentDate}.csv`, 'text/csv');
+}
+
+function exportMissing() {
+  if (!currentStats) return;
+  const headers = ['學號','姓名','英文名','班級','棟','房號','床號','國籍','電話'];
+  const rows = currentStats.notIn.map(s => [
+    s.id, s.name||'', s.engName, s.className, s.building||'', s.roomNo||'', s.bedNo||'', s.nationality, s.phone||''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c=>`"${c}"`).join(',')).join('\n');
+  downloadFile(csv, `未返宿名單_${currentDate}.csv`, 'text/csv');
+}
+
+setToday();
+</script>
+</body>
+</html>

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>匯入學生資料 - 僑生返宿系統</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+.drop-zone {
+  border: 3px dashed var(--primary);
+  border-radius: 12px;
+  padding: 2.5rem 1rem;
+  text-align: center;
+  cursor: pointer;
+  transition: .2s;
+  background: var(--primary-light);
+}
+.drop-zone:hover, .drop-zone.dragover { background: #c8e6d6; }
+.drop-zone .drop-icon { font-size: 2.5rem; margin-bottom: .5rem; }
+.preview-table { font-size: .78rem; }
+.field-map { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.mapping-row { display: flex; align-items: center; gap: .5rem; margin-bottom: .4rem; }
+.mapping-row label { flex: 0 0 90px; font-size: .85rem; font-weight: 600; }
+.mapping-row select { flex: 1; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>📂 匯入學生資料</h1>
+  <nav class="header-nav">
+    <a href="index.html" class="nav-link" data-page="home">首頁</a>
+    <a href="scan.html" class="nav-link" data-page="scan">掃碼登記</a>
+    <a href="students.html" class="nav-link" data-page="students">學生管理</a>
+    <a href="report.html" class="nav-link" data-page="report">統計報表</a>
+    <a href="import.html" class="nav-link active" data-page="import">匯入資料</a>
+  </nav>
+</header>
+
+<nav class="bottom-nav">
+  <a href="index.html" class="nav-link" data-page="home"><span class="icon">🏠</span>首頁</a>
+  <a href="scan.html" class="nav-link" data-page="scan"><span class="icon">📷</span>掃碼</a>
+  <a href="students.html" class="nav-link" data-page="students"><span class="icon">👥</span>學生</a>
+  <a href="report.html" class="nav-link" data-page="report"><span class="icon">📊</span>報表</a>
+  <a href="import.html" class="nav-link active" data-page="import"><span class="icon">📂</span>匯入</a>
+</nav>
+
+<div id="toast"></div>
+
+<div class="container">
+  <div class="page-title">匯入學生資料</div>
+
+  <!-- 現有資料狀態 -->
+  <div class="card">
+    <div class="card-title">系統資料狀態</div>
+    <div class="stats-grid" style="grid-template-columns: repeat(3, 1fr)">
+      <div class="stat-card blue"><div class="stat-num" id="db-total">-</div><div class="stat-label">已匯入學生</div></div>
+      <div class="stat-card green"><div class="stat-num" id="db-resident">-</div><div class="stat-label">住宿中</div></div>
+      <div class="stat-card orange"><div class="stat-num" id="db-records">-</div><div class="stat-label">返宿紀錄</div></div>
+    </div>
+    <div class="flex mt-1" style="gap:.5rem;flex-wrap:wrap">
+      <button class="btn btn-outline btn-sm" onclick="exportCurrentStudents()">⬇ 匯出現有學生（含識別碼）</button>
+      <button class="btn btn-danger btn-sm" onclick="clearAllData()">🗑 清除所有資料</button>
+    </div>
+  </div>
+
+  <!-- 上傳 CSV -->
+  <div class="card">
+    <div class="card-title">Step 1 — 上傳學生名冊 CSV</div>
+    <div class="drop-zone" id="drop-zone" onclick="document.getElementById('csv-file').click()">
+      <div class="drop-icon">📄</div>
+      <div style="font-weight:600">點擊選擇 CSV 檔案</div>
+      <div style="font-size:.82rem;color:#666;margin-top:.3rem">或拖曳檔案至此</div>
+      <div style="font-size:.78rem;color:#999;margin-top:.5rem">支援格式：UTF-8 CSV（學生名冊_xxxx.csv）</div>
+    </div>
+    <input type="file" id="csv-file" accept=".csv" style="display:none" onchange="handleFile(event)">
+    <div id="file-info" style="margin-top:.5rem;font-size:.85rem;color:#666"></div>
+  </div>
+
+  <!-- 欄位對應設定 -->
+  <div class="card hidden" id="mapping-card">
+    <div class="card-title">Step 2 — 欄位對應設定</div>
+    <p style="font-size:.82rem;color:#666;margin-bottom:.8rem">
+      請確認 CSV 欄位與系統欄位的對應關係（已自動偵測）
+    </p>
+    <div id="field-mapping"></div>
+  </div>
+
+  <!-- 預覽 -->
+  <div class="card hidden" id="preview-card">
+    <div class="card-title">Step 3 — 資料預覽（前 5 筆）</div>
+    <div class="table-wrap">
+      <table class="preview-table">
+        <thead id="preview-head"></thead>
+        <tbody id="preview-body"></tbody>
+      </table>
+    </div>
+    <p id="preview-count" style="font-size:.82rem;color:#666;margin-top:.5rem"></p>
+  </div>
+
+  <!-- 匯入選項 -->
+  <div class="card hidden" id="import-options-card">
+    <div class="card-title">Step 4 — 匯入選項</div>
+    <div class="form-group">
+      <label class="form-label">
+        <input type="radio" name="import-mode" value="add" checked>
+        新增（略過已存在的學號）
+      </label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">
+        <input type="radio" name="import-mode" value="replace">
+        取代所有現有資料（原有識別碼將遺失）
+      </label>
+    </div>
+    <div class="form-group">
+      <label class="form-label">
+        <input type="checkbox" id="chk-gen-token" checked>
+        為每位學生產生新的亂數識別碼 (OIS-XXXXXXXX)
+      </label>
+    </div>
+    <button class="btn btn-primary btn-lg btn-block" onclick="doImport()">🚀 確認匯入</button>
+  </div>
+
+  <!-- 匯入結果 -->
+  <div class="card hidden" id="result-card">
+    <div class="card-title">匯入結果</div>
+    <div id="import-result"></div>
+    <div class="flex mt-2" style="gap:.5rem">
+      <a href="students.html" class="btn btn-primary">前往學生名冊</a>
+      <button class="btn btn-outline" onclick="printAllQRAfterImport()">🖨 列印所有 QR 卡</button>
+    </div>
+  </div>
+
+  <!-- 欄位說明 -->
+  <div class="card">
+    <div class="card-title">CSV 格式說明</div>
+    <p style="font-size:.85rem;line-height:1.7">
+      系統支援以下欄位名稱（CSV 標題行）：<br>
+      <code>學號</code> 或 <code>ID</code> — 學號（必填）<br>
+      <code>姓名</code> — 中文姓名<br>
+      <code>英文名</code> — 英文姓名<br>
+      <code>等級</code> 或 <code>班級</code> — 班級名稱<br>
+      <code>來源</code> 或 <code>國籍</code> — 國籍<br>
+      <code>性別</code> — 男/女<br>
+      <code>電話</code> — 聯絡電話<br>
+      <code>棟</code> — 宿舍棟別（如 12F）<br>
+      <code>房號</code> — 房間號碼<br>
+      <code>床</code> — 床號<br>
+      <code>狀態</code> — 在住/工場實習<br>
+      <code>生日</code> — 出生日期
+    </p>
+    <p style="font-size:.82rem;color:#888;margin-top:.5rem">
+      ⚠ 注意：請勿在 CSV 中包含身分證號或居留證號欄位，以保護個人資料。<br>
+      系統將自動為每位學生產生獨立的亂數識別碼作為 QR Code 內容。
+    </p>
+  </div>
+</div>
+
+<script src="js/db.js"></script>
+<script src="js/app.js"></script>
+<script>
+// 欄位對應定義
+const FIELD_MAP_DEF = [
+  { key: 'id',          label: '學號*',  candidates: ['學號','ID','id','student_id'] },
+  { key: 'name',        label: '中文姓名', candidates: ['姓名','name'] },
+  { key: 'engName',     label: '英文姓名', candidates: ['英文名','english_name','engName'] },
+  { key: 'className',   label: '班級',    candidates: ['等級','班級','class','className'] },
+  { key: 'nationality', label: '國籍',    candidates: ['來源','國籍','nationality'] },
+  { key: 'gender',      label: '性別',    candidates: ['性別','gender'] },
+  { key: 'phone',       label: '電話',    candidates: ['電話','phone'] },
+  { key: 'building',    label: '棟別',    candidates: ['棟','building'] },
+  { key: 'roomNo',      label: '房號',    candidates: ['房號','room','roomNo'] },
+  { key: 'bedNo',       label: '床號',    candidates: ['床','床號','bed','bedNo'] },
+  { key: 'status',      label: '狀態',    candidates: ['狀態','status'] },
+  { key: 'birthday',    label: '生日',    candidates: ['生日','birthday','生日'] },
+];
+
+let csvHeaders = [];
+let csvRows = [];
+let fieldMapping = {};
+
+function updateDbStats() {
+  document.getElementById('db-total').textContent = DB.students.count();
+  document.getElementById('db-resident').textContent = DB.students.getResident().length;
+  document.getElementById('db-records').textContent = DB.records.getAll().length;
+}
+
+function handleFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  document.getElementById('file-info').textContent = `已選擇：${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      parseAndPreview(e.target.result);
+    } catch(err) {
+      showToast('讀取失敗：' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function parseAndPreview(text) {
+  const rows = parseCSV(text);
+  if (!rows.length) { showToast('CSV 無資料或格式錯誤', 'error'); return; }
+
+  csvHeaders = Object.keys(rows[0]);
+  csvRows = rows;
+
+  // Auto-detect field mapping
+  fieldMapping = {};
+  FIELD_MAP_DEF.forEach(def => {
+    const found = def.candidates.find(c => csvHeaders.includes(c));
+    fieldMapping[def.key] = found || '';
+  });
+
+  // Render mapping UI
+  const headerOptions = ['（忽略此欄）', ...csvHeaders].map(h =>
+    `<option value="${h === '（忽略此欄）' ? '' : h}">${h}</option>`).join('');
+
+  document.getElementById('field-mapping').innerHTML = FIELD_MAP_DEF.map(def => `
+    <div class="mapping-row">
+      <label>${def.label}</label>
+      <select data-key="${def.key}" onchange="fieldMapping[this.dataset.key]=this.value">
+        ${headerOptions}
+      </select>
+    </div>`).join('');
+
+  // Set auto-detected values
+  document.querySelectorAll('[data-key]').forEach(sel => {
+    sel.value = fieldMapping[sel.dataset.key] || '';
+  });
+
+  // Preview
+  const previewRows = rows.slice(0, 5);
+  document.getElementById('preview-head').innerHTML =
+    '<tr>' + csvHeaders.map(h => `<th>${h}</th>`).join('') + '</tr>';
+  document.getElementById('preview-body').innerHTML = previewRows.map(r =>
+    '<tr>' + csvHeaders.map(h => `<td>${r[h] || ''}</td>`).join('') + '</tr>'
+  ).join('');
+  document.getElementById('preview-count').textContent = `共 ${rows.length} 筆資料`;
+
+  document.getElementById('mapping-card').classList.remove('hidden');
+  document.getElementById('preview-card').classList.remove('hidden');
+  document.getElementById('import-options-card').classList.remove('hidden');
+}
+
+function doImport() {
+  if (!csvRows.length) { showToast('請先上傳 CSV', 'warning'); return; }
+  if (!fieldMapping.id) { showToast('必須設定「學號」欄位對應', 'warning'); return; }
+
+  const mode = document.querySelector('input[name="import-mode"]:checked').value;
+
+  const students = csvRows.map(row => {
+    const s = {};
+    FIELD_MAP_DEF.forEach(def => {
+      const col = fieldMapping[def.key];
+      if (col) s[def.key] = row[col] || '';
+    });
+    // Normalize status
+    if (!s.status) s.status = '在住';
+    if (!s.id) return null;
+    return s;
+  }).filter(Boolean);
+
+  if (!students.length) { showToast('沒有有效資料可匯入', 'error'); return; }
+
+  let result;
+  if (mode === 'replace') {
+    const count = DB.students.replaceAll(students);
+    result = { added: count, skipped: 0 };
+  } else {
+    result = DB.students.importMany(students);
+  }
+
+  document.getElementById('result-card').classList.remove('hidden');
+  document.getElementById('import-result').innerHTML = `
+    <div style="font-size:1.1rem;margin-bottom:.5rem">
+      ✅ 匯入完成！
+    </div>
+    <p>新增：<strong>${result.added}</strong> 位學生</p>
+    ${result.skipped ? `<p>略過（已存在）：<strong>${result.skipped}</strong> 位</p>` : ''}
+    <p>目前系統共有 <strong>${DB.students.count()}</strong> 位學生</p>
+    <p style="margin-top:.5rem;font-size:.85rem;color:#666">
+      每位學生已自動產生唯一識別碼 (OIS-XXXXXXXX)，可在學生名冊中查看並列印 QR Code 識別卡。
+    </p>`;
+
+  updateDbStats();
+  showToast(`成功匯入 ${result.added} 位學生`, 'success');
+}
+
+function printAllQRAfterImport() {
+  if (typeof printQRCards === 'function') printQRCards();
+}
+
+function exportCurrentStudents() {
+  const students = DB.students.getAll();
+  if (!students.length) { showToast('尚無學生資料', 'warning'); return; }
+  const headers = ['學號','姓名','英文名','班級','國籍','性別','電話','棟','房號','床號','狀態','生日','識別碼'];
+  const rows = students.map(s => [
+    s.id, s.name||'', s.engName||'', s.className||'', s.nationality||'',
+    s.gender||'', s.phone||'', s.building||'', s.roomNo||'', s.bedNo||'',
+    s.status||'', s.birthday||'', s.token
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(c=>`"${c}"`).join(',')).join('\n');
+  downloadFile(csv, `學生名冊_含識別碼_${DB.today()}.csv`, 'text/csv');
+  showToast('匯出完成（含識別碼）', 'success');
+}
+
+function clearAllData() {
+  if (!confirm('⚠ 確定要清除所有學生資料和返宿紀錄？\n此操作無法復原！')) return;
+  localStorage.removeItem(DB.KEYS.STUDENTS);
+  localStorage.removeItem(DB.KEYS.RECORDS);
+  updateDbStats();
+  showToast('已清除所有資料', 'warning');
+  location.reload();
+}
+
+// Drag & drop
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (!file || !file.name.endsWith('.csv')) { showToast('請上傳 .csv 格式檔案', 'error'); return; }
+  const input = document.getElementById('csv-file');
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  const evt = new Event('change');
+  input.dispatchEvent(evt);
+});
+
+updateDbStats();
+</script>
+</body>
+</html>
