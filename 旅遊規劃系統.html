@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅遊規劃系統 — 國內 / 日本 / 韓國 / 泰國</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1e2a3a; --sub:#5b6b7e; --line:#e3e9f1;
+    --accent:#0e7490; --accent2:#0891b2; --warn:#b45309; --ok:#15803d; --bad:#b91c1c;
+    --chip:#e0f2fe; --gold:#fef3c7; --radius:14px;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:"Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif; background:var(--bg); color:var(--ink); line-height:1.6;}
+  header{background:linear-gradient(135deg,#0e7490,#155e75); color:#fff; padding:18px 26px; display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between;}
+  header h1{font-size:1.35rem; letter-spacing:1px;}
+  header p{opacity:.85; font-size:.85rem; margin-top:2px;}
+  .wiz-open{background:#fff; color:var(--accent); border:none; border-radius:999px; padding:10px 20px; font-weight:800; font-size:.95rem; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.2);}
+  .wrap{max-width:1180px; margin:0 auto; padding:18px;}
+  .setup{display:flex; flex-wrap:wrap; gap:14px; background:var(--card); border:1px solid var(--line); border-radius:var(--radius); padding:16px 18px; margin-bottom:16px; align-items:flex-end;}
+  .setup .field{display:flex; flex-direction:column; gap:4px;}
+  .setup label{font-size:.78rem; color:var(--sub); font-weight:700;}
+  .setup input,.setup select{padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:.95rem; min-width:90px; background:#fff;}
+  .dest-btns{display:flex; gap:8px; flex-wrap:wrap;}
+  .dest-btn{padding:9px 16px; border-radius:999px; border:2px solid var(--line); background:#fff; cursor:pointer; font-size:.95rem; font-weight:700; color:var(--sub); transition:.15s;}
+  .dest-btn.active{border-color:var(--accent); background:var(--accent); color:#fff;}
+  nav.tabs{display:flex; gap:4px; flex-wrap:wrap; margin-bottom:14px;}
+  .tab{padding:10px 16px; border:none; border-radius:10px 10px 0 0; background:#dde6ef; cursor:pointer; font-size:.9rem; font-weight:700; color:var(--sub);}
+  .tab.active{background:var(--card); color:var(--accent); box-shadow:0 -2px 6px rgba(0,0,0,.05);}
+  section.panel{display:none; background:var(--card); border:1px solid var(--line); border-radius:0 var(--radius) var(--radius) var(--radius); padding:20px;}
+  section.panel.show{display:block;}
+  h2{font-size:1.12rem; color:var(--accent); margin-bottom:12px; border-left:4px solid var(--accent); padding-left:10px;}
+  h3{font-size:1rem; margin:14px 0 8px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:12px;}
+  .card{border:1px solid var(--line); border-radius:12px; padding:14px; background:#fbfdff; position:relative;}
+  .card h4{font-size:.98rem; margin-bottom:6px; padding-right:54px;}
+  .card .meta{font-size:.82rem; color:var(--sub);}
+  .tag{display:inline-block; background:var(--chip); color:#075985; border-radius:6px; padding:1px 8px; font-size:.75rem; margin-right:4px; margin-bottom:3px;}
+  .badge-must{position:absolute; top:10px; right:10px; background:#dc2626; color:#fff; font-size:.72rem; font-weight:800; border-radius:6px; padding:2px 7px;}
+  .badge-eat{background:#ea580c;}
+  .go-chip{display:inline-block; background:#ecfdf5; color:#047857; border:1px dashed #34d399; border-radius:6px; padding:1px 7px; font-size:.74rem; margin-top:5px;}
+  table{width:100%; border-collapse:collapse; font-size:.92rem;}
+  th,td{border-bottom:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:middle;}
+  th{background:#f0f5fa; font-size:.82rem; color:var(--sub);}
+  td input[type=number]{width:110px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; text-align:right;}
+  .num{text-align:right; font-variant-numeric:tabular-nums;}
+  .total-bar{margin-top:14px; background:#0e7490; color:#fff; border-radius:12px; padding:14px 18px; display:flex; flex-wrap:wrap; gap:18px; align-items:center; justify-content:space-between;}
+  .total-bar .big{font-size:1.5rem; font-weight:800;}
+  .total-bar small{opacity:.8; display:block;}
+  .checklist{display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:6px 18px;}
+  .checklist label{display:flex; gap:8px; align-items:flex-start; padding:5px 8px; border-radius:8px; cursor:pointer; font-size:.93rem;}
+  .checklist label:hover{background:#eef5fb;}
+  .checklist input{margin-top:4px;}
+  .checklist .done{text-decoration:line-through; color:#9aa8b8;}
+  .must{color:var(--bad); font-weight:700; font-size:.75rem; border:1px solid var(--bad); border-radius:5px; padding:0 5px; margin-left:4px;}
+  .progress{height:10px; background:#e3e9f1; border-radius:999px; overflow:hidden; margin:8px 0 14px;}
+  .progress>div{height:100%; background:linear-gradient(90deg,#0e7490,#22c55e); width:0%; transition:.3s;}
+  .btn{padding:9px 16px; border:none; border-radius:9px; background:var(--accent); color:#fff; cursor:pointer; font-size:.9rem; font-weight:700;}
+  .btn.ghost{background:#eef5fb; color:var(--accent);}
+  .btn.danger{background:#fde8e8; color:var(--bad);}
+  .btn.small{padding:5px 10px; font-size:.8rem;}
+  .btn.big{padding:14px 28px; font-size:1.05rem; border-radius:12px;}
+  .btn-row{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center;}
+  .note-li{margin-left:1.2em; margin-bottom:6px; font-size:.93rem;}
+  .alert{background:#fff7ed; border:1px solid #fdba74; border-radius:10px; padding:10px 14px; font-size:.88rem; margin-bottom:12px;}
+  .savebar{position:fixed; right:16px; bottom:14px; background:#1e2a3a; color:#fff; padding:7px 14px; border-radius:999px; font-size:.78rem; opacity:0; transition:.3s; pointer-events:none; z-index:50;}
+  .savebar.show{opacity:.92;}
+  .links a{color:var(--accent); font-size:.88rem;}
+  footer{text-align:center; color:var(--sub); font-size:.78rem; padding:20px;}
+  /* ── 行程（逐日分組） ── */
+  .day-block{border:1px solid var(--line); border-radius:12px; margin-bottom:14px; overflow:hidden;}
+  .day-head{background:linear-gradient(90deg,#0e7490,#0891b2); color:#fff; padding:8px 14px; font-weight:800; display:flex; justify-content:space-between; align-items:center; font-size:.95rem;}
+  .day-body{padding:10px 12px;}
+  .itin-row{display:grid; grid-template-columns:78px 78px 1fr 150px 130px 48px; gap:8px; margin-bottom:8px; align-items:center;}
+  .itin-row input{padding:7px 9px; border:1px solid var(--line); border-radius:8px; font-size:.9rem; width:100%;}
+  .itin-empty{color:var(--sub); font-size:.85rem; padding:4px 2px;}
+  /* ── 路線懶人包 ── */
+  .route-card{border:2px solid var(--line); border-radius:14px; margin-bottom:16px; overflow:hidden; background:#fbfdff;}
+  .route-head{padding:14px 16px; display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; background:linear-gradient(90deg,#f0f9ff,#e0f2fe);}
+  .route-head h4{font-size:1.05rem; color:#075985;}
+  .route-head .meta{font-size:.82rem; color:var(--sub); margin-top:2px;}
+  .route-body{padding:6px 16px 14px;}
+  details.rday{border-bottom:1px dashed var(--line); padding:6px 0;}
+  details.rday summary{cursor:pointer; font-weight:800; font-size:.93rem; color:#155e75; padding:4px 0;}
+  .ritem{display:flex; gap:8px; align-items:flex-start; padding:6px 0 6px 10px; border-left:3px solid #bae6fd; margin:6px 0 6px 6px; font-size:.9rem; flex-wrap:wrap;}
+  .ritem .time{font-weight:800; color:var(--accent); min-width:96px;}
+  .ritem .nm{font-weight:700;}
+  .ritem .b-must{background:#dc2626; color:#fff; border-radius:5px; font-size:.7rem; padding:1px 6px; font-weight:800;}
+  .ritem .b-eat{background:#ea580c; color:#fff; border-radius:5px; font-size:.7rem; padding:1px 6px; font-weight:800;}
+  .ritem .desc{flex-basis:100%; color:var(--sub); font-size:.82rem; padding-left:56px;}
+  /* ── 精靈 ── */
+  .wiz-overlay{position:fixed; inset:0; background:rgba(15,40,60,.55); z-index:100; display:none; align-items:center; justify-content:center; padding:16px;}
+  .wiz-overlay.show{display:flex;}
+  .wiz{background:#fff; border-radius:18px; max-width:680px; width:100%; max-height:92vh; overflow-y:auto; padding:26px 28px; box-shadow:0 12px 40px rgba(0,0,0,.3);}
+  .wiz-steps{display:flex; gap:6px; margin-bottom:18px;}
+  .wiz-steps span{flex:1; height:6px; border-radius:999px; background:#e3e9f1;}
+  .wiz-steps span.on{background:var(--accent);}
+  .wiz h3{font-size:1.25rem; color:var(--accent); margin:0 0 4px;}
+  .wiz .sub{color:var(--sub); font-size:.9rem; margin-bottom:16px;}
+  .opt-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:14px;}
+  .opt{border:2px solid var(--line); border-radius:12px; padding:14px 12px; cursor:pointer; text-align:center; font-weight:700; font-size:.95rem; transition:.15s; background:#fff;}
+  .opt .big-ico{font-size:1.7rem; display:block; margin-bottom:4px;}
+  .opt small{display:block; color:var(--sub); font-weight:400; font-size:.76rem; margin-top:3px;}
+  .opt.sel{border-color:var(--accent); background:#e0f2fe;}
+  .wiz-nav{display:flex; justify-content:space-between; gap:10px; margin-top:20px;}
+  .wiz .field-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:12px;}
+  .wiz .field-row .field{display:flex; flex-direction:column; gap:4px;}
+  .wiz .field-row label{font-size:.8rem; color:var(--sub); font-weight:700;}
+  .wiz .field-row input{padding:9px 11px; border:1px solid var(--line); border-radius:8px; font-size:1rem; width:130px;}
+  .wiz-route{border:2px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; cursor:pointer;}
+  .wiz-route.sel{border-color:var(--accent); background:#e0f2fe;}
+  .wiz-route h5{font-size:.98rem; color:#075985;}
+  .wiz-route .meta{font-size:.8rem; color:var(--sub);}
+  .wiz-done{text-align:center; padding:10px 0;}
+  .wiz-done .emoji{font-size:3rem;}
+  .wiz-sum{background:#f0f9ff; border-radius:12px; padding:14px; margin:14px 0; text-align:left; font-size:.92rem;}
+  @media print{
+    header,nav.tabs,.setup .dest-btns,.btn,.btn-row,.savebar,.wiz-overlay,footer{display:none!important;}
+    section.panel{display:block!important; border:none; page-break-inside:avoid; margin-bottom:18px;}
+    body{background:#fff;} .setup{border:none;}
+  }
+  .badge-shop{background:#7c3aed;}
+  @media(max-width:680px){.itin-row{grid-template-columns:66px 66px 1fr 44px;} .itin-row .hide-m{display:none;} .ritem .desc{padding-left:0;}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🧳 旅遊規劃系統</h1>
+    <p>目的地資訊 ・ 推薦路線懶人包 ・ 預算試算 ・ 攜帶清單 ・ 匯出文件與行事曆</p>
+  </div>
+  <button class="wiz-open" onclick="openWiz()">🧭 規劃精靈：一步步引導我</button>
+</header>
+
+<div class="wrap">
+  <div class="setup">
+    <div class="field" style="flex:1 1 100%;">
+      <label>目的地</label>
+      <div class="dest-btns" id="destBtns"></div>
+    </div>
+    <div class="field"><label>出發日期</label><input type="date" id="startDate"></div>
+    <div class="field"><label>天數</label><input type="number" id="days" min="1" max="30" value="5"></div>
+    <div class="field"><label>大人</label><input type="number" id="adults" min="1" max="20" value="2"></div>
+    <div class="field"><label>小孩（半價計）</label><input type="number" id="kids" min="0" max="20" value="0"></div>
+    <div class="field"><label>匯率（1 外幣 = ? 台幣）</label><input type="number" id="fxRate" step="0.001" min="0"></div>
+    <div class="field"><label>旅行風格</label>
+      <select id="style">
+        <option value="0.8">省錢背包</option>
+        <option value="1" selected>標準舒適</option>
+        <option value="1.5">豪華享受</option>
+      </select>
+    </div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-t="overview">📋 總覽</button>
+    <button class="tab" data-t="routes">🗺️ 推薦路線</button>
+    <button class="tab" data-t="budget">💰 預算試算</button>
+    <button class="tab" data-t="itinerary">🗓️ 我的行程</button>
+    <button class="tab" data-t="packing">🎒 攜帶物品</button>
+    <button class="tab" data-t="spots">📍 景點美食購物</button>
+    <button class="tab" data-t="notes">⚠️ 注意事項</button>
+    <button class="tab" data-t="export">📤 匯出 / 同步</button>
+  </nav>
+
+  <section class="panel show" id="p-overview">
+    <h2 id="ov-title">行程總覽</h2>
+    <div class="grid" id="ov-cards"></div>
+    <h3>🚆 交通方式</h3><div class="grid" id="ov-transport"></div>
+    <h3>🏨 住宿選擇</h3><div class="grid" id="ov-stay"></div>
+  </section>
+
+  <section class="panel" id="p-routes">
+    <h2 id="routesTitle">最佳旅遊路線懶人包</h2>
+    <div class="alert">💡 每條路線已排好<b>逐日順路行程</b>，含 ★必去景點、🍜必吃美食、點對點交通建議。按「⚡ 套用」即自動排入「我的行程」，再依喜好微調即可。</div>
+    <div id="routeCards"></div>
+  </section>
+
+  <section class="panel" id="p-budget">
+    <h2>預算試算（單價可直接修改、即時重算）</h2>
+    <div class="alert">💡 金額為<b>台幣</b>估算值。「每人每日」項目會乘以天數與人數；小孩以半價計。修改任何欄位都會即時更新並自動儲存。</div>
+    <table id="budgetTable">
+      <thead><tr><th>項目</th><th>計算方式</th><th class="num">單價（TWD）</th><th class="num">小計（TWD）</th><th class="num">外幣參考</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div class="total-bar">
+      <div><small>總預算（含 10% 預備金）</small><span class="big" id="grandTotal">—</span></div>
+      <div><small>每人平均</small><span class="big" id="perPerson">—</span></div>
+      <div><small>外幣參考</small><span class="big" id="fxTotal">—</span></div>
+    </div>
+  </section>
+
+  <section class="panel" id="p-itinerary">
+    <h2>我的逐日行程</h2>
+    <div class="alert">從「🗺️ 推薦路線」一鍵套用最快；也可在「📍 景點美食」按＋加入，或在各天手動新增。綠色虛線框是<b>交通建議</b>，可直接修改。</div>
+    <div id="itinList"></div>
+    <div class="btn-row">
+      <button class="btn ghost" onclick="clearItin()">清空本目的地行程</button>
+    </div>
+  </section>
+
+  <section class="panel" id="p-packing">
+    <h2>攜帶物品檢查清單</h2>
+    <div class="progress"><div id="packProg"></div></div>
+    <p style="font-size:.85rem;color:var(--sub);margin-bottom:10px;" id="packStat"></p>
+    <h3>🔴 必帶物品（出發前務必確認）</h3>
+    <div class="checklist" id="packMust"></div>
+    <h3>🟡 建議攜帶</h3>
+    <div class="checklist" id="packNice"></div>
+    <h3>➕ 自訂物品</h3>
+    <div class="checklist" id="packCustom"></div>
+    <div class="btn-row">
+      <input id="customItem" placeholder="輸入自訂物品…" style="padding:8px 12px;border:1px solid var(--line);border-radius:8px;min-width:220px;">
+      <button class="btn" onclick="addCustomItem()">加入</button>
+      <button class="btn ghost" onclick="resetChecks()">全部重設</button>
+    </div>
+  </section>
+
+  <section class="panel" id="p-spots">
+    <h2 id="spotsTitle">可玩景點（★＝必去）</h2>
+    <div class="grid" id="spotCards"></div>
+    <h2 style="margin-top:20px;">美食推薦（🍜＝必吃）</h2>
+    <div class="grid" id="foodCards"></div>
+    <h2 style="margin-top:20px;">購物商圈（🛍️＝必逛）</h2>
+    <div class="grid" id="shopCards"></div>
+  </section>
+
+  <section class="panel" id="p-notes">
+    <h2 id="notesTitle">注意事項</h2>
+    <ul id="noteList"></ul>
+    <h3>🔗 即時資訊查詢（出發前必看）</h3>
+    <ul class="links" id="liveLinks"></ul>
+  </section>
+
+  <section class="panel" id="p-export">
+    <h2>匯出文件 / 同步行事曆</h2>
+    <div class="grid">
+      <div class="card"><h4>🖨️ 列印 / 另存 PDF</h4><p class="meta">將總覽、預算、行程、清單一次輸出成 PDF（瀏覽器列印 → 另存為 PDF）。</p><div class="btn-row"><button class="btn" onclick="window.print()">列印 / 存 PDF</button></div></div>
+      <div class="card"><h4>📅 行事曆 .ics</h4><p class="meta">下載後雙擊匯入 Google / Apple / Outlook 行事曆，每日行程自動建立事件（含交通建議）。</p><div class="btn-row"><button class="btn" onclick="exportICS()">下載 .ics</button></div></div>
+      <div class="card"><h4>📊 試算表 CSV</h4><p class="meta">含預算明細、行程、清單，可用 Excel / Google 試算表開啟。</p><div class="btn-row"><button class="btn" onclick="exportCSV()">下載 CSV</button></div></div>
+      <div class="card"><h4>📋 複製行程文字（LINE 分享）</h4><p class="meta">把逐日行程＋預算摘要變成漂亮的文字訊息，直接貼到 LINE 群組給親朋好友。</p><div class="btn-row"><button class="btn" onclick="copyShareText()">複製行程文字</button></div></div>
+      <div class="card"><h4>💾 備份 / 還原</h4><p class="meta">JSON 完整備份，可換電腦或分享給同行旅伴匯入。</p><div class="btn-row"><button class="btn ghost" onclick="exportJSON()">備份</button><button class="btn ghost" onclick="document.getElementById('importFile').click()">還原</button><input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(this)"></div></div>
+    </div>
+    <h3>👨‍👩‍👧 怎麼分享給親朋好友？</h3>
+    <ul>
+      <li class="note-li"><b>傳整個系統</b>：把「旅遊規劃系統.html」這個檔案用 LINE／Email 傳給對方，對方存到手機或電腦後用瀏覽器打開即可使用（免安裝、離線可用）。</li>
+      <li class="note-li"><b>傳你的行程</b>：①「複製行程文字」貼到 LINE 群組最快；②「備份」匯出 JSON 給旅伴，對方按「還原」就能看到一模一樣的行程和清單。</li>
+      <li class="note-li"><b>同步到大家的行事曆</b>：下載 .ics 丟到群組，每個人匯入自己的 Google／Apple 行事曆；或由一人匯入 Google 日曆後用「與特定使用者共用」邀請全家。</li>
+      <li class="note-li"><b>列印給長輩</b>：「列印／存 PDF」輸出紙本，總覽＋行程＋清單一目了然。</li>
+    </ul>
+  </section>
+</div>
+
+<!-- ════════ 規劃精靈 ════════ -->
+<div class="wiz-overlay" id="wizOverlay">
+  <div class="wiz">
+    <div class="wiz-steps" id="wizSteps"></div>
+    <div id="wizBody"></div>
+    <div class="wiz-nav">
+      <button class="btn ghost" id="wizBack" onclick="wizGo(-1)">← 上一步</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn ghost" onclick="closeWiz()">先跳過，自己逛逛</button>
+        <button class="btn" id="wizNext" onclick="wizGo(1)">下一步 →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="savebar" id="savebar">✓ 已自動儲存</div>
+<footer>旅遊規劃系統 ・ 資料儲存於本機瀏覽器 ・ 出發前請以官方公告為準</footer>
+
+<script>
+/* ════════════════ 目的地資料庫 ════════════════ */
+const DB = {
+/* ──────── 台灣 ──────── */
+tw:{name:"台灣國內", flag:"🇹🇼", cur:"TWD", rate:1, dom:true,
+ cost:{flight:0, lodging:1600, food:600, transport:600, ticket:300, ins:60},
+ facts:[["簽證","不需要"],["時差","無"],["電壓插座","110V／同台灣"],["網路","手機原門號"],["貨幣","新台幣 TWD"],["緊急電話","110 / 119"]],
+ transport:[
+  {n:"高鐵",d:"北高最快 94 分鐘；早鳥 65 折，乘車日前 29 天開賣。",t:["西部","快速"]},
+  {n:"台鐵",d:"環島皆達，東部主力；新自強號 3000 需訂票。",t:["環島","平價"]},
+  {n:"租車／自駕",d:"中南部與花東景點分散，自駕最彈性；連假提早兩週訂。",t:["彈性","家庭"]},
+  {n:"台灣好行＋YouBike",d:"景點接駁公車＋市區單車，搭配悠遊卡最省。",t:["省錢"]}],
+ stay:[
+  {n:"商務／連鎖飯店",d:"雙人房約 NT$2,500–4,500／晚，車站周邊方便。",t:["方便"]},
+  {n:"特色民宿",d:"花東、清境、九份體驗佳，約 NT$2,000–4,000／晚。",t:["體驗"]},
+  {n:"溫泉旅館",d:"礁溪、北投、谷關，一泊二食約 NT$5,000 起。",t:["放鬆"]},
+  {n:"青年旅館",d:"床位 NT$500–900／晚，獨旅省錢首選。",t:["省錢"]}],
+ spots:[
+  {n:"九份老街・阿妹茶樓",a:"新北",d:"山城紅燈籠黃昏點燈最美，宮崎駿氛圍。",must:1,go:"台北搭 965 快速公車約 70 分"},
+  {n:"十分放天燈・瀑布",a:"新北",d:"平溪線鐵道旁放天燈，台版尼加拉瀑布。",must:1,go:"瑞芳轉平溪線小火車"},
+  {n:"日月潭",a:"南投",d:"遊湖＋纜車＋向山自行車道，二日遊經典。",must:1,go:"台中干城搭南投客運直達"},
+  {n:"阿里山日出",a:"嘉義",d:"祝山線看日出雲海＋神木群棧道。",must:1,go:"嘉義站搭阿里山林鐵或台灣好行"},
+  {n:"清境農場",a:"南投",d:"青青草原餵羊、高空步道，避暑勝地。",must:0,go:"台中搭南投客運轉埔里線"},
+  {n:"太魯閣・砂卡礑",a:"花蓮",d:"峽谷步道；部分整修中，出發前查開放狀態。",must:1,go:"花蓮站搭台灣好行 310"},
+  {n:"伯朗大道・池上",a:"台東",d:"金城武樹、金黃稻浪，租電動車最 chill。",must:1,go:"台鐵池上站租電動自行車"},
+  {n:"墾丁・鵝鑾鼻",a:"屏東",d:"水上活動＋龍磐草原星空。",must:0,go:"高鐵左營搭墾丁快線 2 小時"},
+  {n:"安平古堡・樹屋",a:"台南",d:"百年榕樹包圍老洋行，台灣第一座城堡。",must:1,go:"台南站搭 2 路公車 25 分"},
+  {n:"駁二藝術特區",a:"高雄",d:"倉庫群文創市集＋哈瑪星鐵道園區。",must:0,go:"輕軌駁二大義站下車即達"},
+  {n:"野柳女王頭",a:"新北",d:"世界級海蝕地形，建議平日早上去。",must:0,go:"台北車站搭 1815 客運 80 分"},
+  {n:"礁溪溫泉",a:"宜蘭",d:"平地溫泉泡湯＋湯圍溝公園免費泡腳。",must:0,go:"首都客運礁溪線 60 分"}],
+ foods:[
+  {n:"士林／寧夏夜市",a:"台北",d:"蚵仔煎、雞排、芋圓，夜市經典。",must:1},
+  {n:"台南牛肉湯",a:"台南",d:"溫體牛現燙，清晨 5 點開賣，在地人早餐。",must:1},
+  {n:"度小月擔仔麵・周氏蝦捲",a:"台南",d:"百年老店一條龍吃透透。",must:1},
+  {n:"逢甲夜市",a:"台中",d:"創新小吃發源地：激旨燒鳥、大腸包小腸。",must:1},
+  {n:"宮原眼科冰淇淋",a:"台中",d:"日治老建築改建，華麗書牆＋豪華聖代。",must:0},
+  {n:"基隆廟口夜市",a:"基隆",d:"鼎邊銼、營養三明治、一口吃香腸。",must:0},
+  {n:"東港黑鮪魚",a:"屏東",d:"4–6 月產季，華僑市場生魚片便宜大碗。",must:0},
+  {n:"羅東夜市",a:"宜蘭",d:"當歸羊肉湯、龍鳳腿、包心粉圓。",must:0}],
+ shops:[
+  {n:"信義商圈",a:"台北",d:"101、新光三越、誠品一次逛齊，週末有市集。",buy:"台灣茶葉、鳳梨酥、文創小物",hours:"11:00–21:30",go:"捷運市政府站／台北101站",must:1},
+  {n:"西門町",a:"台北",d:"年輕潮流聖地，街頭表演＋電影街。",buy:"潮牌、球鞋、動漫周邊",hours:"12:00–22:00",go:"捷運西門站 6 號出口",must:0},
+  {n:"迪化街",a:"台北",d:"百年南北貨老街，年貨大街發源地。",buy:"烏魚子、香菇、中藥材、花布",hours:"09:00–19:00",go:"捷運北門站步行 10 分",must:0},
+  {n:"一中街商圈",a:"台中",d:"學生平價美食＋服飾的一級戰區。",buy:"平價服飾、雞排配奶茶",hours:"12:00–22:30",go:"台中車站轉公車 15 分",must:0},
+  {n:"新崛江商圈",a:"高雄",d:"南台灣西門町，日系小物多。",buy:"日韓服飾、扭蛋、文創",hours:"13:00–22:00",go:"捷運中央公園站 2 號出口",must:0}],
+ routes:[
+  {n:"台北北海岸經典 3 日",days:3,tags:["首訪","美食","網美","文化"],best:"全年皆宜，避開颱風季",
+   plan:[
+    {t:"台北市區文化美食日",items:[
+     {time:"09:00",n:"中正紀念堂",k:"spot",must:0,go:"捷運淡水信義線中正紀念堂站",note:"整點衛兵交接"},
+     {time:"11:30",n:"永康街・鼎泰豐",k:"food",must:1,go:"捷運東門站 5 號出口",note:"小籠包＋芒果冰"},
+     {time:"14:00",n:"大稻埕迪化街",k:"spot",must:1,go:"捷運北門站步行 10 分",note:"南北貨老街＋霞海城隍廟求姻緣"},
+     {time:"17:00",n:"象山步道看 101 夜景",k:"spot",must:1,go:"捷運象山站 2 號出口",note:"來回約 1 小時，帶水"},
+     {time:"19:30",n:"饒河街夜市",k:"food",must:1,go:"捷運松山站 1 號出口",note:"胡椒餅（米其林推薦）必吃"}]},
+    {t:"平溪九份山城日",items:[
+     {time:"08:30",n:"十分放天燈",k:"spot",must:1,go:"台北→瑞芳台鐵 40 分，轉平溪線",note:"寫願望放天燈約 NT$200"},
+     {time:"12:00",n:"九份老街午餐",k:"food",must:1,go:"瑞芳搭 788 公車上山 20 分",note:"阿柑姨芋圓、草仔粿"},
+     {time:"14:00",n:"阿妹茶樓・豎崎路",k:"spot",must:1,go:"老街內步行",note:"紅燈籠茶樓拍照＋品茶"},
+     {time:"16:30",n:"黃金博物館",k:"spot",must:0,go:"九份搭 891 公車 10 分",note:"淘金體驗、本山五坑"},
+     {time:"19:00",n:"回台北・寧夏夜市",k:"food",must:1,go:"965 公車回北門 70 分",note:"豬肝湯、蛋黃芋餅"}]},
+    {t:"北投陽明山溫泉日",items:[
+     {time:"09:30",n:"北投溫泉博物館・地熱谷",k:"spot",must:1,go:"捷運新北投站步行 10 分",note:"青磺泉煙霧繚繞"},
+     {time:"12:00",n:"北投市場矮仔財滷肉飯",k:"food",must:1,go:"博物館步行 8 分",note:"排隊名店，賣完為止"},
+     {time:"14:00",n:"陽明山擎天崗",k:"spot",must:0,go:"劍潭站搭紅 5 轉 108 遊園公車",note:"大草原＋水牛"},
+     {time:"17:00",n:"泡湯（亞太或日勝生）",k:"spot",must:0,go:"回新北投",note:"大眾湯約 NT$600–800"},
+     {time:"19:30",n:"士林夜市",k:"food",must:1,go:"捷運劍潭站 1 號出口",note:"豪大雞排、青蛙下蛋"}]}]},
+  {n:"環島精華 5 日（西進東回）",days:5,tags:["首訪","自然","美食","家庭"],best:"3–5 月、10–12 月",
+   plan:[
+    {t:"台北 → 台中",items:[
+     {time:"09:00",n:"高鐵台北→台中",k:"move",must:0,go:"高鐵 50 分，早鳥 65 折",note:"取車或搭接駁"},
+     {time:"11:00",n:"宮原眼科",k:"food",must:1,go:"台中車站步行 5 分",note:"冰淇淋＋伴手禮"},
+     {time:"14:00",n:"高美濕地",k:"spot",must:1,go:"自駕 40 分或 309 公車",note:"傍晚夕陽＋風車大道最美"},
+     {time:"19:00",n:"逢甲夜市",k:"food",must:1,go:"自駕 30 分",note:"激旨燒鳥、官芝霖大腸包小腸"}]},
+    {t:"日月潭一日",items:[
+     {time:"09:00",n:"台中→日月潭",k:"move",must:0,go:"南投客運直達 90 分",note:"買好行套票含船票"},
+     {time:"10:30",n:"遊湖（水社→玄光寺→伊達邵）",k:"spot",must:1,go:"環湖船班 30 分一班",note:"玄光寺旁阿婆茶葉蛋"},
+     {time:"14:00",n:"日月潭纜車",k:"spot",must:1,go:"伊達邵碼頭步行 10 分",note:"高空俯瞰全潭"},
+     {time:"16:00",n:"向山遊客中心",k:"spot",must:0,go:"環湖巴士或租電動車",note:"清水模建築＋婚紗平台"},
+     {time:"18:30",n:"伊達邵商圈晚餐",k:"food",must:0,go:"碼頭旁",note:"小米酒香腸、總統魚"}]},
+    {t:"阿里山日出 → 嘉義",items:[
+     {time:"04:30",n:"祝山線看日出",k:"spot",must:1,go:"前晚宿阿里山園區，凌晨搭祝山線",note:"車票前一天先買"},
+     {time:"08:00",n:"神木群棧道・姊妹潭",k:"spot",must:1,go:"園區步行環線約 2 小時",note:"千年紅檜森呼吸"},
+     {time:"13:00",n:"下山→嘉義市",k:"move",must:0,go:"台灣好行 7322 約 2 小時",note:""},
+     {time:"15:00",n:"檜意森活村",k:"spot",must:0,go:"嘉義站步行 15 分",note:"日式宿舍群文創園區"},
+     {time:"18:00",n:"文化路夜市",k:"food",must:1,go:"步行 10 分",note:"郭家雞肉飯、御香屋葡萄柚綠"}]},
+    {t:"台南古都巡禮",items:[
+     {time:"09:00",n:"嘉義→台南",k:"move",must:0,go:"台鐵 40 分",note:""},
+     {time:"10:00",n:"赤崁樓・武廟",k:"spot",must:1,go:"台南站搭 3 路公車",note:"國定古蹟"},
+     {time:"12:00",n:"國華街小吃馬拉松",k:"food",must:1,go:"步行 8 分",note:"富盛號碗粿、邱家小卷米粉"},
+     {time:"14:30",n:"安平古堡・樹屋",k:"spot",must:1,go:"2 路公車 20 分",note:"順吃同記安平豆花"},
+     {time:"17:30",n:"神農街黃昏",k:"spot",must:1,go:"公車回市區",note:"老屋酒吧文青街拍"},
+     {time:"19:00",n:"台南牛肉湯宵夜場",k:"food",must:1,go:"步行",note:"溫體牛現燙"}]},
+    {t:"高雄半日 → 返程",items:[
+     {time:"09:00",n:"台南→高雄",k:"move",must:0,go:"台鐵 40 分",note:""},
+     {time:"10:00",n:"駁二藝術特區",k:"spot",must:1,go:"輕軌駁二大義站",note:"倉庫文創＋大港橋"},
+     {time:"12:00",n:"旗津海產午餐",k:"food",must:1,go:"鼓山輪渡站搭船 10 分",note:"烤小卷、番茄切盤"},
+     {time:"15:00",n:"高鐵左營返北",k:"move",must:0,go:"捷運西子灣→左營 25 分",note:"順買不二家蛋黃酥"}]}]},
+  {n:"花東縱谷療癒 4 日",days:4,tags:["自然","放鬆","網美","家庭"],best:"6–8 月金針花、全年",
+   plan:[
+    {t:"台北 → 礁溪 → 花蓮",items:[
+     {time:"09:00",n:"台北→礁溪",k:"move",must:0,go:"首都客運 60 分",note:""},
+     {time:"10:00",n:"湯圍溝泡腳・甕窯雞",k:"food",must:1,go:"礁溪轉運站步行 10 分",note:"整隻手扒甕窯雞"},
+     {time:"14:00",n:"礁溪→花蓮",k:"move",must:0,go:"台鐵新自強 60 分（提早訂票）",note:"左側靠窗看海"},
+     {time:"16:00",n:"七星潭",k:"spot",must:1,go:"花蓮站搭 308 公車 25 分",note:"礫石海灘看太平洋"},
+     {time:"19:00",n:"東大門夜市",k:"food",must:1,go:"市區步行或公車",note:"原住民一條街烤肉、第一家烤肉串"}]},
+    {t:"太魯閣峽谷日",items:[
+     {time:"08:30",n:"太魯閣遊客中心",k:"spot",must:1,go:"台灣好行 310 線 50 分",note:"先確認步道開放狀態"},
+     {time:"10:00",n:"砂卡礑步道",k:"spot",must:1,go:"園區接駁",note:"碧綠溪水如寶石"},
+     {time:"13:00",n:"布洛灣・燕子口",k:"spot",must:0,go:"接駁車",note:"山月吊橋需預約"},
+     {time:"17:00",n:"回市區・公正包子",k:"food",must:1,go:"310 線回程",note:"一顆 5 元小籠包宵夜"}]},
+    {t:"縱谷南下 → 池上",items:[
+     {time:"09:00",n:"雲山水夢幻湖",k:"spot",must:0,go:"自駕或包車（縱谷大眾運輸少）",note:"落羽松倒影"},
+     {time:"11:00",n:"瑞穗牧場",k:"spot",must:0,go:"台9線南下",note:"鮮奶饅頭＋餵牛"},
+     {time:"13:30",n:"池上飯包文化故事館",k:"food",must:1,go:"續南下 60 分",note:"在火車便當盒裡吃正宗池上便當"},
+     {time:"15:00",n:"伯朗大道・金城武樹",k:"spot",must:1,go:"池上市區租電動車",note:"金黃稻浪 6 月、10 月最美"},
+     {time:"17:30",n:"大坡池夕陽",k:"spot",must:0,go:"單車 10 分",note:"靜謐湖景"}]},
+    {t:"台東市 → 返程",items:[
+     {time:"09:30",n:"台東森林公園・琵琶湖",k:"spot",must:0,go:"市區租單車",note:"木麻黃綠色隧道"},
+     {time:"11:30",n:"藍蜻蜓速食",k:"food",must:1,go:"市區步行",note:"台東人的炸雞信仰"},
+     {time:"13:00",n:"鐵花村慢市集",k:"spot",must:0,go:"步行 5 分",note:"熱氣球彩繪燈籠"},
+     {time:"15:30",n:"台鐵返程",k:"move",must:0,go:"普悠瑪／新自強回台北 3.5–4.5 小時",note:"提早 28 天訂票"}]}]}],
+ notes:[
+  "連假高鐵票開賣（乘車日前 29 天）即訂，熱門時段秒殺。",
+  "山區（阿里山、合歡山）日夜溫差大，夏天也要帶薄外套。",
+  "颱風季（7–9 月）注意氣象署警報，東部行程保留調整彈性。",
+  "部分國家公園步道需入山入園申請（如玉山、嘉明湖），提前 1 個月辦理。",
+  "花東大眾運輸班次少，縱谷段建議自駕、包車或參加在地一日遊。",
+  "墾丁、綠島浮潛選有救生員的合法業者，注意離岸流。"],
+ packMust:["身分證件（健保卡／駕照）","手機＋充電器","行動電源","常用藥品（個人處方藥）","現金＋悠遊卡／一卡通","信用卡","訂房／車票證明（截圖備份）"],
+ packNice:["薄外套（山區早晚涼）","雨具（折疊傘）","防曬乳＋帽子","泳衣（溫泉／海邊）","防蚊液","環保杯／購物袋","暈車藥"],
+ links:[["交通部觀光署（活動與景點公告）","https://www.taiwan.net.tw"],["中央氣象署（天氣／颱風）","https://www.cwa.gov.tw"],["台灣高鐵訂票","https://www.thsrc.com.tw"],["台鐵訂票","https://www.railway.gov.tw"],["台灣好行路線","https://www.taiwantrip.com.tw"]]},
+
+/* ──────── 日本 ──────── */
+jp:{name:"日本", flag:"🇯🇵", cur:"JPY", rate:0.21, dom:false,
+ cost:{flight:12000, lodging:2200, food:1200, transport:700, ticket:500, ins:150},
+ facts:[["簽證","免簽 90 天（觀光）"],["時差","快台灣 1 小時"],["電壓插座","100V／兩腳扁插（同台灣可用）"],["網路","eSIM／WiFi 機，約 NT$150–300／天"],["貨幣","日圓 JPY"],["緊急電話","警察 110／救護 119"]],
+ transport:[
+  {n:"區域周遊券",d:"全國 JR PASS 大漲價後，多數行程買區域券（關西、關東廣域、北陸）較划算。",t:["跨城市"]},
+  {n:"Suica／ICOCA",d:"手機直接加入 Apple/Google 錢包，地鐵、便利商店都能刷。",t:["必備","市區"]},
+  {n:"新幹線",d:"東京⇄大阪約 2.5 小時；旺季先在 SmartEX 線上訂指定席。",t:["快速"]},
+  {n:"市區地鐵一日券",d:"東京 Metro 24/48/72 小時券、大阪周遊卡含景點門票。",t:["省錢"]}],
+ stay:[
+  {n:"商務旅館",d:"東橫INN、APA 等，雙人房約 ¥9,000–15,000／晚，車站旁。",t:["方便"]},
+  {n:"溫泉旅館",d:"一泊二食約 ¥18,000–40,000／人，箱根、有馬、由布院。",t:["體驗"]},
+  {n:"民宿／町家",d:"京都町家適合 4 人以上包棟，認明民泊登錄編號。",t:["家庭"]},
+  {n:"膠囊旅館",d:"¥3,000–5,000／晚，獨旅省錢。",t:["省錢"]}],
+ spots:[
+  {n:"淺草寺・仲見世通",a:"東京",d:"雷門大燈籠＋江戶風老街，東京第一名所。",must:1,go:"地鐵銀座線淺草站 1 號出口"},
+  {n:"澀谷天空 SHIBUYA SKY",a:"東京",d:"229 米露天展望台俯瞰十字路口。",must:1,go:"澀谷站直結，門票線上預約"},
+  {n:"明治神宮・竹下通",a:"東京",d:"森林參道＋原宿少女系購物街一次走完。",must:0,go:"JR 原宿站下車即達"},
+  {n:"東京迪士尼",a:"東京",d:"陸地經典／海洋限定，APP 抽 DPA。",must:0,go:"JR 京葉線舞濱站 15 分"},
+  {n:"teamLab Planets",a:"東京",d:"赤腳走進水中數位藝術，務必提前購票。",must:1,go:"百合海鷗號新豐洲站"},
+  {n:"清水寺・二三年坂",a:"京都",d:"清水舞台＋石板坂道，清晨 6 點開門人最少。",must:1,go:"京都站搭 100/206 公車"},
+  {n:"伏見稻荷千本鳥居",a:"京都",d:"萬座朱紅鳥居隧道，24 小時免費。",must:1,go:"JR 奈良線稻荷站出站即達"},
+  {n:"嵐山竹林・渡月橋",a:"京都",d:"竹林小徑＋保津川，順搭嵯峨野小火車。",must:0,go:"JR 嵯峨嵐山站步行 10 分"},
+  {n:"大阪環球影城 USJ",a:"大阪",d:"瑪利歐＋哈利波特園區，快速通關先買。",must:1,go:"JR 環狀線→夢咲線環球城站"},
+  {n:"道頓堀・心齋橋",a:"大阪",d:"固力果跑跑人打卡＋藥妝掃貨主場。",must:1,go:"地鐵難波站 14 號出口"},
+  {n:"奈良公園・東大寺",a:"奈良",d:"千頭小鹿鞠躬討仙貝＋世界最大木造大佛。",must:1,go:"近鐵奈良站步行 15 分"},
+  {n:"富士山河口湖",a:"山梨",d:"大石公園逆富士、纜車天上山。",must:0,go:"新宿高速巴士直達 105 分"}],
+ foods:[
+  {n:"築地場外市場",a:"東京",d:"海鮮丼、玉子燒，早上 8–10 點最新鮮。",must:1},
+  {n:"一蘭／阿夫利拉麵",a:"東京",d:"機器點餐免日文；柚子鹽拉麵清爽系。",must:1},
+  {n:"道頓堀章魚燒・大阪燒",a:"大阪",d:"本家章魚燒外酥內爆漿，美津の大阪燒排隊。",must:1},
+  {n:"新世界串炸",a:"大阪",d:"醬汁只能沾一次！八重勝老店。",must:0},
+  {n:"錦市場",a:"京都",d:"京都的廚房：豆乳甜甜圈、漬物、玉子燒。",must:1},
+  {n:"奈良中谷堂麻糬",a:"奈良",d:"高速搗麻糬表演，現搗艾草麻糬。",must:0},
+  {n:"百貨地下美食街",a:"全國",d:"閉店前 1 小時熟食半價，省錢晚餐神器。",must:0},
+  {n:"迴轉壽司（壽司郎／藏壽司）",a:"全國",d:"一盤 ¥115 起，APP 先抽號免排隊。",must:1}],
+ shops:[
+  {n:"新宿東口商圈",a:"東京",d:"百貨激戰區：伊勢丹、0101、BicCamera。",buy:"藥妝、電器、洋菓子伴手禮",hours:"11:00–21:00（唐吉訶德 24h）",go:"JR 新宿站東口",must:1},
+  {n:"銀座",a:"東京",d:"UNIQLO／無印全球旗艦＋百年文具伊東屋。",buy:"旗艦店限定、文具、和菓子",hours:"11:00–20:00",go:"地鐵銀座站",must:0},
+  {n:"秋葉原",a:"東京",d:"動漫電器聖地，扭蛋會館必逛。",buy:"公仔、遊戲、扭蛋、電器",hours:"10:00–20:00",go:"JR 秋葉原站電氣街口",must:0},
+  {n:"心齋橋筋商店街",a:"大阪",d:"600 米拱廊藥妝一級戰區，越晚折扣越多。",buy:"藥妝（多比三家）、零食",hours:"10:00–21:00",go:"地鐵心齋橋站",must:1},
+  {n:"京都四條河原町",a:"京都",d:"高島屋＋新京極商店街，與錦市場相連。",buy:"抹茶甜點、和風雜貨、漬物",hours:"10:00–20:00",go:"阪急京都河原町站",must:0}],
+ routes:[
+  {n:"東京首訪經典 5 日",days:5,tags:["首訪","購物","美食","親子","網美"],best:"3–4 月櫻花、11 月紅葉",
+   plan:[
+    {t:"抵達・淺草上野下町日",items:[
+     {time:"10:00",n:"成田/羽田 → 市區",k:"move",must:0,go:"Skyliner 41 分／單軌電車 20 分",note:"先買 Suica 加入手機"},
+     {time:"13:00",n:"淺草寺・仲見世通",k:"spot",must:1,go:"地鐵銀座線淺草站",note:"雷門拍照、人形燒"},
+     {time:"15:30",n:"上野阿美橫町",k:"spot",must:0,go:"銀座線上野站 5 分",note:"藥妝零食批發價"},
+     {time:"18:00",n:"一蘭拉麵上野店",k:"food",must:1,go:"步行 5 分",note:"24 小時，避開正餐尖峰"}]},
+    {t:"原宿澀谷潮流日",items:[
+     {time:"09:00",n:"明治神宮",k:"spot",must:1,go:"JR 山手線原宿站",note:"森林參道淨心"},
+     {time:"11:00",n:"竹下通・表參道",k:"spot",must:0,go:"出站即達",note:"可麗餅＋潮牌"},
+     {time:"14:00",n:"澀谷十字路口・忠犬八公",k:"spot",must:1,go:"JR 山手線澀谷站",note:"星巴克 2 樓看人潮"},
+     {time:"16:00",n:"SHIBUYA SKY 看夕陽",k:"spot",must:1,go:"澀谷站直結",note:"提前線上買票選日落場"},
+     {time:"19:00",n:"澀谷橫丁居酒屋",k:"food",must:1,go:"步行 5 分",note:"串燒＋Highball"}]},
+    {t:"teamLab 台場科技日",items:[
+     {time:"09:30",n:"teamLab Planets",k:"spot",must:1,go:"百合海鷗號新豐洲站",note:"穿短褲（要泡水）"},
+     {time:"13:00",n:"台場 DiverCity",k:"spot",must:0,go:"百合海鷗號 10 分",note:"等身大鋼彈立像"},
+     {time:"16:00",n:"銀座散策",k:"spot",must:0,go:"地鐵有樂町線",note:"無印旗艦店、伊東屋文具"},
+     {time:"18:30",n:"銀座 GINZA SIX 地下美食",k:"food",must:0,go:"步行",note:"職人便當閉店折扣"}]},
+    {t:"築地鎌倉小旅行",items:[
+     {time:"08:00",n:"築地場外市場早餐",k:"food",must:1,go:"地鐵日比谷線築地站",note:"海鮮丼＋玉子燒"},
+     {time:"10:30",n:"鎌倉大佛・長谷寺",k:"spot",must:0,go:"JR 橫須賀線 60 分＋江之電",note:"買江之電一日券"},
+     {time:"14:00",n:"江之島・鎌倉高校前",k:"spot",must:1,go:"江之電沿線",note:"灌籃高手平交道打卡"},
+     {time:"18:30",n:"回東京・新宿思い出橫丁",k:"food",must:1,go:"小田急線回新宿",note:"昭和小巷烤雞串"}]},
+    {t:"最後採買 → 機場",items:[
+     {time:"09:00",n:"晴空塔 Solamachi",k:"spot",must:0,go:"半藏門線押上站直結",note:"伴手禮一次買齊"},
+     {time:"12:00",n:"迴轉壽司午餐",k:"food",must:1,go:"塔內",note:"APP 先抽號"},
+     {time:"14:00",n:"前往機場",k:"move",must:0,go:"押上搭機場快線直達成田 55 分",note:"國際線提早 3 小時"}]}]},
+  {n:"關西大阪京都奈良 5 日",days:5,tags:["首訪","文化","美食","親子","主題樂園"],best:"3–4 月櫻花、11 月紅葉",
+   plan:[
+    {t:"抵達大阪・道頓堀",items:[
+     {time:"11:00",n:"關西機場 → 難波",k:"move",must:0,go:"南海電鐵特急 Rapi:t 38 分",note:"買 ICOCA"},
+     {time:"14:00",n:"心齋橋藥妝掃貨",k:"spot",must:0,go:"難波站步行",note:"大國藥妝比價"},
+     {time:"17:00",n:"道頓堀固力果跑跑人",k:"spot",must:1,go:"步行 5 分",note:"戎橋打卡"},
+     {time:"18:00",n:"本家章魚燒＋美津の大阪燒",k:"food",must:1,go:"道頓堀商店街",note:"外酥內爆漿"}]},
+    {t:"京都東山古都日",items:[
+     {time:"07:30",n:"大阪→京都・清水寺",k:"spot",must:1,go:"JR 京都線 30 分＋公車 206",note:"清晨避人潮，和服體驗先預約"},
+     {time:"10:30",n:"二三年坂・八坂神社",k:"spot",must:1,go:"步行下坡",note:"星巴克塌塌米店"},
+     {time:"12:30",n:"錦市場邊走邊吃",k:"food",must:1,go:"祇園步行 15 分",note:"豆乳甜甜圈、玉子燒"},
+     {time:"15:00",n:"伏見稻荷千本鳥居",k:"spot",must:1,go:"京阪本線伏見稻荷站",note:"爬到四辻展望點即可折返"},
+     {time:"18:30",n:"先斗町晚餐",k:"food",must:0,go:"京阪祇園四條站",note:"鴨川旁百年花街"}]},
+    {t:"奈良餵鹿半日＋大阪城",items:[
+     {time:"09:00",n:"奈良公園餵鹿",k:"spot",must:1,go:"大阪難波搭近鐵奈良線 40 分",note:"仙貝藏背後，先拜後給"},
+     {time:"10:30",n:"東大寺大佛殿",k:"spot",must:1,go:"公園內步行",note:"世界最大木造建築"},
+     {time:"12:00",n:"中谷堂麻糬・三條通",k:"food",must:1,go:"步行 12 分",note:"現搗艾草麻糬"},
+     {time:"15:00",n:"大阪城天守閣",k:"spot",must:0,go:"近鐵回鶴橋轉環狀線",note:"順逛 JO-TERRACE"},
+     {time:"18:30",n:"新世界串炸・通天閣",k:"food",must:1,go:"環狀線新今宮站",note:"醬汁只沾一次"}]},
+    {t:"環球影城 USJ 全日",items:[
+     {time:"08:00",n:"開園衝瑪利歐園區",k:"spot",must:1,go:"環狀線→夢咲線環球城站",note:"快速通關 4 提前兩週買"},
+     {time:"12:00",n:"園內午餐（奇諾比奧咖啡）",k:"food",must:0,go:"園內",note:"蘑菇造型餐"},
+     {time:"15:00",n:"哈利波特禁忌之旅",k:"spot",must:1,go:"園內",note:"奶油啤酒必喝"},
+     {time:"20:00",n:"夜間遊行・回市區",k:"spot",must:0,go:"JR 回西九条轉車",note:""}]},
+    {t:"黑門市場 → 機場",items:[
+     {time:"09:00",n:"黑門市場海鮮早午餐",k:"food",must:1,go:"地鐵日本橋站 10 號出口",note:"現烤扇貝、和牛串"},
+     {time:"12:00",n:"難波 LaLaport／臨空 Outlet",k:"spot",must:0,go:"南海線往機場順路",note:"最後採買"},
+     {time:"15:00",n:"關西機場",k:"move",must:0,go:"南海電鐵 40 分",note:"免稅品出境前勿拆封"}]}]},
+  {n:"北海道道央雪國 5 日",days:5,tags:["自然","美食","放鬆","網美"],best:"12–2 月雪季、7 月薰衣草",
+   plan:[
+    {t:"抵達札幌",items:[
+     {time:"12:00",n:"新千歲機場 → 札幌",k:"move",must:0,go:"JR 快速 Airport 37 分",note:"機場先吃湯咖哩也行"},
+     {time:"15:00",n:"大通公園・電視塔",k:"spot",must:0,go:"地鐵大通站",note:"冬季白色燈樹節"},
+     {time:"18:00",n:"湯咖哩 GARAKU",k:"food",must:1,go:"狸小路步行 5 分",note:"北海道靈魂料理，先抽號"}]},
+    {t:"小樽運河浪漫日",items:[
+     {time:"09:00",n:"札幌→小樽",k:"move",must:0,go:"JR 函館本線 40 分（靠海側左邊）",note:""},
+     {time:"10:00",n:"小樽運河・倉庫群",k:"spot",must:1,go:"小樽站步行 10 分",note:"雪季最浪漫"},
+     {time:"12:00",n:"政壽司／三角市場海鮮丼",k:"food",must:1,go:"堺町通",note:"產地直送"},
+     {time:"14:00",n:"堺町通・北一硝子・八音盒堂",k:"spot",must:1,go:"步行",note:"LeTAO 雙層起司蛋糕現吃"},
+     {time:"17:30",n:"天狗山夜景",k:"spot",must:0,go:"巴士＋纜車",note:"小樽八景之首"}]},
+    {t:"旭山動物園親子日",items:[
+     {time:"08:30",n:"札幌→旭川",k:"move",must:0,go:"JR 特急 85 分（旭山動物園套票）",note:""},
+     {time:"10:30",n:"旭山動物園",k:"spot",must:1,go:"旭川站搭 41/47 巴士 40 分",note:"冬季企鵝散步 11:00/14:30"},
+     {time:"16:00",n:"回札幌",k:"move",must:0,go:"JR 特急",note:""},
+     {time:"18:30",n:"成吉思汗烤羊肉",k:"food",must:1,go:"薄野だるま本店",note:"排隊名店，沾醬配生蒜"}]},
+    {t:"定山溪溫泉放鬆日",items:[
+     {time:"10:00",n:"札幌→定山溪",k:"move",must:0,go:"河童 Liner 直達巴士 60 分",note:"或宿溫泉旅館一泊二食"},
+     {time:"11:00",n:"定山溪散策・足湯",k:"spot",must:0,go:"溫泉街步行",note:"二見吊橋紅葉/雪景"},
+     {time:"15:00",n:"溫泉大浴場",k:"spot",must:1,go:"旅館內",note:"雪見露天風呂"},
+     {time:"18:00",n:"會席料理晚餐",k:"food",must:1,go:"旅館內",note:"毛蟹＋帆立貝"}]},
+    {t:"場外市場 → 機場",items:[
+     {time:"08:30",n:"札幌場外市場",k:"food",must:1,go:"地鐵二十四軒站 7 分",note:"帝王蟹腳＋海膽丼早餐"},
+     {time:"11:00",n:"白色戀人公園",k:"spot",must:0,go:"地鐵宮の沢站",note:"伴手禮工廠見學"},
+     {time:"14:00",n:"新千歲機場",k:"move",must:0,go:"JR 快速 Airport",note:"機場內 Royce 巧克力世界"}]}]}],
+ notes:[
+  "入境前先在 Visit Japan Web 填好入境與海關申報，出示 QR Code 快速通關。",
+  "消費稅 10%；同店單日滿 ¥5,000 可免稅，掃護照辦理。",
+  "大眾運輸車廂內請勿講電話；手扶梯關東靠左、關西靠右站立。",
+  "垃圾桶極少，自備袋子把垃圾帶回飯店分類。",
+  "小費文化：不需要給小費。",
+  "藥妝、電器免稅品出境前不可拆封使用。",
+  "小店常見只收現金，日圓現金要備足。"],
+ packMust:["護照（效期建議 6 個月以上）","Visit Japan Web QR Code 截圖","網路（eSIM／WiFi 機）","日圓現金（小店仍常見只收現金）","信用卡（JCB/Visa 感應）","交通 IC 卡（手機 Suica）","常用藥品＋腸胃藥","訂房／機票證明"],
+ packNice:["折疊購物袋（商店袋子要收費）","保溫瓶（冬季）","口罩（冬季感冒高峰）","好走的鞋（日均 2 萬步）","行李秤（戰利品超重防範）","乳液／護唇膏（冬季乾燥）"],
+ links:[["Visit Japan Web（入境必填）","https://vjw-lp.digital.go.jp"],["日本氣象廳","https://www.jma.go.jp"],["外交部領事事務局（旅遊警示）","https://www.boca.gov.tw"],["Yahoo!乘換案內（交通查詢）","https://transit.yahoo.co.jp"],["日圓匯率（台銀牌告）","https://rate.bot.com.tw/xrt"]]},
+
+/* ──────── 韓國 ──────── */
+kr:{name:"韓國", flag:"🇰🇷", cur:"KRW", rate:0.023, dom:false,
+ cost:{flight:9000, lodging:1800, food:1000, transport:500, ticket:400, ins:150},
+ facts:[["簽證","免簽 90 天；K-ETA 豁免狀態出發前再確認"],["時差","快台灣 1 小時"],["電壓插座","220V／圓形兩腳插（需轉接頭）"],["網路","eSIM／WiFi 機"],["貨幣","韓元 KRW"],["緊急電話","警察 112／救護 119"]],
+ transport:[
+  {n:"AREX 機場快線",d:"仁川→首爾站直達 43 分（約 ₩11,000）；機場巴士直達各飯店區。",t:["機場"]},
+  {n:"T-money 卡",d:"地鐵、公車、便利商店通用，地鐵單程約 ₩1,500。",t:["必備"]},
+  {n:"Naver Map／KakaoMap",d:"Google Maps 在韓國不準，必裝在地地圖。",t:["必備"]},
+  {n:"KTX 高鐵",d:"首爾⇄釜山約 2.5 小時，外國人 Korail PASS 划算。",t:["跨城市"]}],
+ stay:[
+  {n:"明洞／東大門飯店",d:"購物最方便，雙人房約 ₩120,000–200,000／晚。",t:["購物"]},
+  {n:"弘大／合井",d:"年輕人聚集、夜生活與咖啡廳，機場快線直達。",t:["夜生活"]},
+  {n:"韓屋體驗（北村／全州）",d:"傳統地暖炕房體驗，約 ₩80,000–150,000／晚。",t:["體驗"]},
+  {n:"釜山海雲台",d:"海景飯店；8 月旺季價格翻倍，避開或早訂。",t:["海景"]}],
+ spots:[
+  {n:"景福宮",a:"首爾",d:"朝鮮王朝正宮，穿韓服免費入場；週二休館。",must:1,go:"地鐵 3 號線景福宮站 5 號出口"},
+  {n:"北村韓屋村",a:"首爾",d:"600 年韓屋聚落，八景拍照點。",must:1,go:"地鐵 3 號線安國站 2 號出口"},
+  {n:"明洞商圈",a:"首爾",d:"美妝一條街＋路邊攤小吃晚上 5 點出沒。",must:1,go:"地鐵 4 號線明洞站"},
+  {n:"N 首爾塔（南山塔）",a:"首爾",d:"愛情鎖牆＋首爾全景夜景。",must:0,go:"明洞站步行＋南山纜車"},
+  {n:"弘大商圈",a:"首爾",d:"街頭表演、塗鴉牆、年輕潮流。",must:0,go:"地鐵 2 號線弘大入口站 9 號出口"},
+  {n:"樂天世界塔 Seoul Sky",a:"首爾",d:"555 米世界第六高樓玻璃地板。",must:0,go:"地鐵 2 號線蠶室站直結"},
+  {n:"昌德宮後苑",a:"首爾",d:"世界遺產祕苑，需預約導覽。",must:0,go:"地鐵 3 號線安國站 3 號出口"},
+  {n:"南怡島",a:"京畿道",d:"冬季戀歌水杉大道，秋天銀杏最美。",must:1,go:"龍山搭 ITX 青春列車 60 分＋渡船"},
+  {n:"愛寶樂園 Everland",a:"京畿道",d:"全韓最大樂園，T Express 木製雲霄飛車。",must:0,go:"江南站搭 5002 巴士 60 分"},
+  {n:"甘川洞文化村",a:"釜山",d:"韓版聖托里尼彩色山城，小王子打卡。",must:1,go:"釜山土城站轉社區巴士"},
+  {n:"海雲台 Blueline Park",a:"釜山",d:"海岸膠囊列車＋天空步道。",must:1,go:"地鐵 2 號線中洞站"},
+  {n:"廣安里海灘",a:"釜山",d:"廣安大橋夜景＋週末無人機燈光秀。",must:0,go:"地鐵 2 號線廣安站"}],
+ foods:[
+  {n:"廣藏市場",a:"首爾",d:"綠豆煎餅、麻藥飯捲、活章魚，百年市場。",must:1},
+  {n:"土俗村人蔘雞",a:"首爾",d:"景福宮旁排隊名店，整隻雞塞糯米人蔘。",must:1},
+  {n:"明洞餃子",a:"首爾",d:"米其林推薦刀切麵＋大顆蒸餃。",must:1},
+  {n:"新村烤五花肉",a:"首爾",d:"鐵盤五花配燒酒，二人份起跳。",must:1},
+  {n:"弘大咖啡廳巡禮",a:"首爾",d:"主題咖啡廳一條街，雲朵蛋糕、鹽麵包。",must:0},
+  {n:"東大門陳玉華一隻雞",a:"首爾",d:"清燉全雞＋刀削麵收尾，宵夜場。",must:0},
+  {n:"釜山豬肉湯飯",a:"釜山",d:"西面豬肉湯飯街，24 小時營業。",must:1},
+  {n:"札嘎其市場烤貝",a:"釜山",d:"韓國最大海鮮市場，現選現烤。",must:0},
+  {n:"橋村炸雞＋啤酒",a:"全國",d:"外帶回飯店配漢江便利商店啤酒。",must:1}],
+ shops:[
+  {n:"明洞商圈",a:"首爾",d:"美妝一條街，Olive Young 旗艦店掃貨＋退稅最方便。",buy:"美妝保養、面膜、韓襪",hours:"10:00–22:00",go:"地鐵 4 號線明洞站",must:1},
+  {n:"東大門批發商圈",a:"首爾",d:"DDP＋深夜批發商場，凌晨最熱鬧。",buy:"平價服飾、飾品（可殺價）",hours:"10:30–凌晨 05:00",go:"地鐵 2/4/5 號線東大門歷史文化公園站",must:1},
+  {n:"弘大商圈",a:"首爾",d:"年輕設計品牌＋文創選物店。",buy:"設計小物、底片相機、襪子",hours:"11:00–22:00",go:"地鐵 2 號線弘大入口站 9 號出口",must:0},
+  {n:"江南 COEX",a:"首爾",d:"星空圖書館打卡＋亞洲最大地下商城。",buy:"精品、K-pop 周邊（SMTOWN）",hours:"10:30–22:00",go:"地鐵 2 號線三成站直結",must:0},
+  {n:"西面地下街",a:"釜山",d:"釜山最大地下商街，雨天購物備案。",buy:"平價服飾、美妝",hours:"10:00–21:30",go:"地鐵 1/2 號線西面站",must:0}],
+ routes:[
+  {n:"首爾經典 5 日",days:5,tags:["首訪","購物","美食","網美","文化"],best:"4–5 月、9–11 月",
+   plan:[
+    {t:"抵達・明洞南山日",items:[
+     {time:"11:00",n:"仁川機場 → 明洞",k:"move",must:0,go:"AREX 到首爾站轉 4 號線，43+10 分",note:"機場先買 T-money＋換錢"},
+     {time:"14:00",n:"明洞商圈美妝掃貨",k:"spot",must:1,go:"飯店步行",note:"Olive Young 旗艦店"},
+     {time:"17:00",n:"N 首爾塔夕陽",k:"spot",must:0,go:"明洞站步行＋南山纜車",note:"愛情鎖牆"},
+     {time:"19:00",n:"明洞餃子＋路邊攤",k:"food",must:1,go:"回明洞主街",note:"刀切麵、雞蛋糕、龍捲風馬鈴薯"}]},
+    {t:"景福宮北村古都日",items:[
+     {time:"09:00",n:"韓服租借",k:"spot",must:1,go:"地鐵 3 號線景福宮站，西花韓服等",note:"穿韓服入宮免費"},
+     {time:"10:00",n:"景福宮・守門將交接",k:"spot",must:1,go:"5 號出口",note:"10:00/14:00 交接儀式；週二休"},
+     {time:"12:30",n:"土俗村人蔘雞",k:"food",must:1,go:"步行 8 分",note:"排隊 30 分起，值得"},
+     {time:"14:30",n:"北村韓屋村・三清洞",k:"spot",must:1,go:"步行 15 分",note:"八景＋文青咖啡街"},
+     {time:"17:30",n:"仁寺洞 Ssamziegil",k:"spot",must:0,go:"步行 10 分",note:"傳統工藝伴手禮"},
+     {time:"19:00",n:"廣藏市場晚餐",k:"food",must:1,go:"地鐵 1 號線鐘路五街站",note:"綠豆煎餅＋麻藥飯捲"}]},
+    {t:"樂天世界塔＋蠶室日",items:[
+     {time:"10:00",n:"樂天世界（室內+室外）",k:"spot",must:1,go:"地鐵 2 號線蠶室站直結",note:"Klook 外國人票較便宜"},
+     {time:"16:00",n:"Seoul Sky 展望台",k:"spot",must:0,go:"同站樂天塔",note:"118 樓玻璃地板"},
+     {time:"18:30",n:"石村湖畔散步",k:"spot",must:0,go:"步行",note:"春天櫻花環湖"},
+     {time:"19:30",n:"蠶室地下街＋一隻雞晚餐",k:"food",must:0,go:"地鐵回東大門",note:"陳玉華一隻雞"}]},
+    {t:"南怡島小法國村一日遊",items:[
+     {time:"08:00",n:"龍山 → 加平",k:"move",must:0,go:"ITX 青春列車 60 分",note:"或參加 Klook 一日團更省事"},
+     {time:"09:30",n:"南怡島水杉大道",k:"spot",must:1,go:"加平碼頭渡船 10 分",note:"租單車環島"},
+     {time:"13:00",n:"加平鐵路自行車 Rail Bike",k:"spot",must:0,go:"接駁巴士",note:"沿北漢江踩鐵道"},
+     {time:"15:30",n:"小法國村＋義大利村",k:"spot",must:0,go:"加平觀光循環巴士",note:"小王子主題"},
+     {time:"19:00",n:"回首爾・新村烤肉",k:"food",must:1,go:"ITX 回程",note:"五花肉＋燒酒"}]},
+    {t:"弘大自由 → 機場",items:[
+     {time:"09:30",n:"弘大塗鴉街・咖啡廳",k:"spot",must:0,go:"地鐵 2 號線弘大入口站",note:"鹽麵包＋手沖"},
+     {time:"12:00",n:"橋村炸雞午餐",k:"food",must:1,go:"弘大店",note:"半半口味"},
+     {time:"14:00",n:"機場快線去仁川",k:"move",must:0,go:"弘大入口站直達 AREX",note:"市區先辦自助退稅"}]}]},
+  {n:"釜山海港美食 4 日",days:4,tags:["美食","自然","網美","放鬆"],best:"5–6 月、9–10 月",
+   plan:[
+    {t:"抵達・西面南浦洞",items:[
+     {time:"11:00",n:"金海機場 → 西面",k:"move",must:0,go:"輕軌轉地鐵 2 號線 40 分",note:"買 T-money"},
+     {time:"13:00",n:"西面豬肉湯飯街",k:"food",must:1,go:"西面站 1 號出口",note:"松亭三代湯飯"},
+     {time:"15:30",n:"南浦洞 BIFF 廣場",k:"spot",must:0,go:"地鐵 1 號線南浦站",note:"堅果黑糖餅發源地"},
+     {time:"17:00",n:"樂天百貨光復店頂樓",k:"spot",must:0,go:"南浦站直結",note:"免費展望台看釜山港"},
+     {time:"19:00",n:"札嘎其市場烤貝晚餐",k:"food",must:1,go:"步行 8 分",note:"現選現烤＋海鞘拼盤"}]},
+    {t:"甘川洞松島日",items:[
+     {time:"09:30",n:"甘川洞文化村",k:"spot",must:1,go:"土城站 6 號出口轉 2-2 社區巴士",note:"小王子雕像排隊拍照"},
+     {time:"13:00",n:"松島天空步道",k:"spot",must:1,go:"巴士 30 分",note:"海上玻璃步道"},
+     {time:"14:30",n:"松島海上纜車",k:"spot",must:0,go:"步行",note:"水晶車廂全透明地板"},
+     {time:"18:00",n:"南浦洞晚餐＋國際市場",k:"food",must:0,go:"巴士回程",note:"忠武飯捲、辣炒年糕"}]},
+    {t:"海雲台藍線日",items:[
+     {time:"09:00",n:"海雲台海灘",k:"spot",must:1,go:"地鐵 2 號線海雲台站",note:"晨間散步"},
+     {time:"10:30",n:"Blueline Park 膠囊列車",k:"spot",must:1,go:"尾浦站搭乘",note:"提前線上訂位，靠海側"},
+     {time:"12:30",n:"青沙浦紅白燈塔・烤貝",k:"food",must:1,go:"膠囊列車終點步行",note:"海景第一排烤扇貝"},
+     {time:"15:30",n:"冬柏島 APEC 世峰樓",k:"spot",must:0,go:"海雲台步行 20 分",note:"海岸木棧道"},
+     {time:"19:00",n:"廣安里海灘夜景",k:"spot",must:1,go:"地鐵 2 號線廣安站",note:"廣安大橋燈光，週六無人機秀"}]},
+    {t:"海東龍宮寺 → 機場",items:[
+     {time:"09:00",n:"海東龍宮寺",k:"spot",must:1,go:"海雲台搭 181 公車 40 分",note:"海岸懸崖寺廟"},
+     {time:"12:00",n:"機張市場雪蟹午餐",k:"food",must:0,go:"公車 20 分",note:"秤重現蒸"},
+     {time:"15:00",n:"金海機場",k:"move",must:0,go:"地鐵＋輕軌 70 分",note:"提早 3 小時"}]}]}],
+ notes:[
+  "台灣護照目前免 K-ETA（豁免措施有期限），出發前一個月務必再確認最新規定。",
+  "入境填 e-Arrival Card（電子入境卡）可加速通關。",
+  "Google Maps 步行導航在韓國幾乎不能用，先裝 Naver Map 或 KakaoMap。",
+  "餐廳多為兩人份起跳，獨旅選擇市場或飯捲店較友善。",
+  "退稅：單筆滿 ₩15,000 即可，市區即時退稅商店直接折扣最方便。",
+  "地鐵博愛座（粉紅色）完全不要坐，文化上非常敏感。",
+  "冬季（12–2 月）氣溫常 -10°C，發熱衣＋羽絨外套必備。"],
+ packMust:["護照（效期 6 個月以上）","轉接頭（圓形兩腳 220V）","網路（eSIM／WiFi 機）","韓元現金＋信用卡","T-money（可到當地便利商店買）","Naver Map／Papago App 先裝好","常用藥品","訂房／機票證明"],
+ packNice:["發熱衣／暖暖包（冬季必帶）","防曬＋墨鏡（夏季）","空行李袋（美妝戰利品）","腸胃藥（辣食不適應）","保濕面膜旅行包","摺疊傘"],
+ links:[["K-ETA 官網（確認豁免狀態）","https://www.k-eta.go.kr"],["韓國觀光公社中文網","https://big5chinese.visitkorea.or.kr"],["外交部領事事務局（旅遊警示）","https://www.boca.gov.tw"],["Naver Map","https://map.naver.com"],["韓元匯率（台銀牌告）","https://rate.bot.com.tw/xrt"]]},
+
+/* ──────── 泰國 ──────── */
+th:{name:"泰國", flag:"🇹🇭", cur:"THB", rate:0.95, dom:false,
+ cost:{flight:9500, lodging:1300, food:700, transport:450, ticket:600, ins:180},
+ facts:[["簽證","免簽（措施有期限，出發前確認）；需填 TDAC 數位入境卡"],["時差","慢台灣 1 小時"],["電壓插座","220V／多為萬用插座"],["網路","eSIM 便宜（約 NT$100–200／7天）"],["貨幣","泰銖 THB"],["緊急電話","觀光警察 1155"]],
+ transport:[
+  {n:"BTS／MRT（曼谷）",d:"空鐵＋地鐵避開塞車，單程 ฿17–62；感應信用卡直接刷。",t:["市區","必備"]},
+  {n:"Grab",d:"東南亞版 Uber，明碼標價不怕喊價，機場接送也可預約。",t:["必備"]},
+  {n:"嘟嘟車 Tuk-Tuk",d:"體驗用，上車前一定先談好價錢，短程 ฿60–100 合理。",t:["體驗"]},
+  {n:"國內線／巴士",d:"曼谷飛清邁／普吉約 1.5 小時，促銷常見 NT$1,000 內。",t:["跨城市"]}],
+ stay:[
+  {n:"曼谷市區飯店",d:"BTS 站旁四星約 ฿1,500–3,000／晚，CP 值全亞洲數一數二。",t:["高CP"]},
+  {n:"泳池別墅 Pool Villa",d:"華欣、普吉包棟，4–8 人分攤每人千元有找。",t:["團體"]},
+  {n:"清邁老城民宿",d:"古城牆內步行可達夜市，約 ฿800–1,500／晚。",t:["文青"]},
+  {n:"海島度假村",d:"普吉、蘇美、喀比；雨季（5–10 月西岸）價格砍半但浪大。",t:["海島"]}],
+ spots:[
+  {n:"大皇宮・玉佛寺",a:"曼谷",d:"泰國最神聖皇家建築群，金碧輝煌。",must:1,go:"MRT Sanam Chai 站步行 15 分"},
+  {n:"臥佛寺 Wat Pho",a:"曼谷",d:"46 米鍍金臥佛＋傳統按摩學校發源地。",must:1,go:"大皇宮步行 10 分"},
+  {n:"鄭王廟 Wat Arun",a:"曼谷",d:"黎明寺河畔日落剪影最美。",must:1,go:"Tha Tien 碼頭搭渡船 ฿5"},
+  {n:"洽圖洽週末市集",a:"曼谷",d:"萬攤規模只開六日，早上去避高溫。",must:1,go:"BTS Mo Chit 站 1 號出口"},
+  {n:"ICONSIAM",a:"曼谷",d:"河畔頂級商場，室內水上市場樓層。",must:0,go:"BTS 金線 Charoen Nakhon 站"},
+  {n:"美功鐵道市場",a:"曼谷近郊",d:"火車穿過菜市場瞬間，攤販秒收棚。",must:1,go:"參加半日團最方便"},
+  {n:"丹能莎朵水上市場",a:"曼谷近郊",d:"手搖船水上叫賣百年場景。",must:0,go:"與美功同團順遊"},
+  {n:"大城遺址 Ayutthaya",a:"曼谷近郊",d:"世界遺產樹中佛頭、臥佛。",must:0,go:"曼谷火車 90 分或一日團"},
+  {n:"清邁古城寺廟群",a:"清邁",d:"契迪龍寺、帕辛寺，古城牆內漫步。",must:1,go:"市區步行或雙條車 ฿30"},
+  {n:"雙龍寺 Doi Suthep",a:"清邁",d:"素帖山金色佛塔俯瞰清邁全城。",must:1,go:"古城搭雙條車上山 40 分"},
+  {n:"大象保護營",a:"清邁",d:"餵食、泥巴浴，選「無騎乘」道德營區。",must:1,go:"營區含飯店接送"},
+  {n:"PP 島跳島",a:"普吉",d:"瑪雅灣、竹子島浮潛，快艇一日遊。",must:1,go:"普吉碼頭快艇 45 分，選含保險船公司"}],
+ foods:[
+  {n:"痣姐 Jay Fai",a:"曼谷",d:"米其林一星街頭小炒，蟹肉蛋捲 ฿1,000。",must:0},
+  {n:"Thip Samai 炒河粉",a:"曼谷",d:"Pad Thai 創始名店，鮮蝦包蛋版。",must:1},
+  {n:"水門海南雞飯",a:"曼谷",d:"粉紅制服阿姨，一盤 ฿50 起。",must:1},
+  {n:"建興酒家咖哩蟹",a:"曼谷",d:"咖哩螃蟹＋蝦醬空心菜，台灣人最愛。",must:1},
+  {n:"芒果糯米飯 Mae Varee",a:"曼谷",d:"4–6 月芒果季最甜。",must:1},
+  {n:"Jodd Fairs 喬德夜市",a:"曼谷",d:"水果西施、火山排骨打卡。",must:1},
+  {n:"清邁咖哩麵 Khao Soi",a:"清邁",d:"椰奶咖哩＋脆麵雙重口感，北泰靈魂。",must:1},
+  {n:"鳳飛飛豬腳飯",a:"清邁",d:"清邁北門夜市傳奇，戴牛仔帽老闆娘。",must:1},
+  {n:"泰式奶茶＋香蕉煎餅",a:"全國",d:"路邊攤 ฿25–50，手標茶最經典。",must:0}],
+ shops:[
+  {n:"Siam 商圈",a:"曼谷",d:"Siam Paragon／Center／Discovery 三館相連。",buy:"曼谷包 NaRaYa、設計師品牌",hours:"10:00–22:00",go:"BTS Siam 站直結",must:1},
+  {n:"Terminal 21",a:"曼谷",d:"每層一個城市主題；頂樓美食街超便宜。",buy:"平價服飾、創意伴手禮",hours:"10:00–22:00",go:"BTS Asok／MRT Sukhumvit 站直結",must:0},
+  {n:"洽圖洽週末市集",a:"曼谷",d:"萬攤之王，殺價樂趣滿點（只開六日）。",buy:"香氛、藤編包、椰子碗、古著",hours:"六日 09:00–18:00",go:"BTS Mo Chit 站 1 號出口",must:1},
+  {n:"Big C／Gourmet Market",a:"曼谷",d:"超市伴手禮一次掃齊，遊客退稅方便。",buy:"海苔、小老闆、媽媽麵、蜂蜜棒",hours:"09:00–23:00",go:"BTS Chit Lom 站對面",must:1},
+  {n:"清邁寧曼路",a:"清邁",d:"文青選物＋設計師品牌＋咖啡一條街。",buy:"手作香皂、棉麻服飾、咖啡豆",hours:"11:00–21:00",go:"古城搭雙條車 15 分",must:0}],
+ routes:[
+  {n:"曼谷經典 5 日",days:5,tags:["首訪","美食","購物","文化","網美"],best:"11–2 月涼季",
+   plan:[
+    {t:"抵達・河畔夜景",items:[
+     {time:"12:00",n:"蘇汪納蓬機場 → 市區",k:"move",must:0,go:"機場快線 ARL 30 分或 Grab",note:"機場先買 eSIM、換小額泰銖"},
+     {time:"15:00",n:"ICONSIAM 商場",k:"spot",must:0,go:"BTS 金線",note:"室內水上市場吃小吃"},
+     {time:"18:00",n:"河畔夕陽・鄭王廟夜拍",k:"spot",must:1,go:"搭昭披耶河遊船",note:"打燈後的黎明寺"},
+     {time:"19:30",n:"Jodd Fairs 夜市",k:"food",must:1,go:"MRT Phra Ram 9 站",note:"火山排骨、水果西施"}]},
+    {t:"三大寺廟文化日",items:[
+     {time:"08:30",n:"大皇宮・玉佛寺",k:"spot",must:1,go:"MRT Sanam Chai 步行",note:"長褲有袖；無視「今天關門」騙術"},
+     {time:"11:00",n:"臥佛寺",k:"spot",must:1,go:"步行 10 分",note:"順做傳統按摩 ฿420/時"},
+     {time:"12:30",n:"碼頭河景午餐",k:"food",must:0,go:"Tha Tien 碼頭旁",note:"河蝦炒河粉"},
+     {time:"14:00",n:"鄭王廟",k:"spot",must:1,go:"渡船 ฿5 過河",note:"白天看陶瓷細節"},
+     {time:"17:00",n:"考山路",k:"spot",must:0,go:"Grab 15 分",note:"背包客大街、炸昆蟲挑戰"},
+     {time:"19:00",n:"Thip Samai 炒河粉",k:"food",must:1,go:"步行 10 分",note:"17:00 開賣排隊"}]},
+    {t:"水上市場鐵道市場一日團",items:[
+     {time:"07:00",n:"美功鐵道市場",k:"spot",must:1,go:"飯店接送半日團（Klook/KKday）",note:"配合火車時刻 8:30/11:10"},
+     {time:"10:00",n:"丹能莎朵水上市場",k:"spot",must:0,go:"團體車程 40 分",note:"手搖船殺價 ฿150 起"},
+     {time:"15:00",n:"回市區・按摩 2 小時",k:"spot",must:1,go:"Health Land 或 Let's Relax",note:"精油按摩先預約"},
+     {time:"19:00",n:"建興酒家咖哩蟹",k:"food",must:1,go:"BTS Surasak 店",note:"咖哩蟹＋蝦醬空心菜"}]},
+    {t:"市集購物日",items:[
+     {time:"09:00",n:"洽圖洽週末市集",k:"spot",must:1,go:"BTS Mo Chit 站（限六日；平日改 Big C＋水門市場）",note:"椰子冰淇淋、香氛蠟燭"},
+     {time:"14:00",n:"水門海南雞飯",k:"food",must:1,go:"BTS Chit Lom 轉步行",note:"粉紅制服總店"},
+     {time:"15:30",n:"四面佛・Central World",k:"spot",must:0,go:"步行 5 分",note:"還願舞蹈隨喜"},
+     {time:"18:00",n:"Mahanakhon SkyWalk",k:"spot",must:0,go:"BTS Chong Nonsi 站",note:"78 樓玻璃地板看夕陽"},
+     {time:"20:00",n:"芒果糯米飯宵夜",k:"food",must:1,go:"Thong Lo 的 Mae Varee",note:"24 小時"}]},
+    {t:"按摩採買 → 機場",items:[
+     {time:"09:30",n:"Big C 超市掃貨",k:"spot",must:1,go:"BTS Chit Lom",note:"海苔、小老闆、皇家蜂蜜"},
+     {time:"12:00",n:"最後一次泰式按摩",k:"spot",must:0,go:"飯店附近",note:"腳底 1 小時 ฿300"},
+     {time:"15:00",n:"前往機場",k:"move",must:0,go:"ARL 或 Grab（留 3 小時）",note:"退稅櫃檯在出境前辦理"}]}]},
+  {n:"清邁慢活 4 日",days:4,tags:["放鬆","文化","自然","美食"],best:"11 月水燈節、11–2 月涼季",
+   plan:[
+    {t:"抵達・古城寺廟",items:[
+     {time:"11:00",n:"清邁機場 → 古城",k:"move",must:0,go:"Grab 15 分 ฿150",note:""},
+     {time:"14:00",n:"契迪龍寺・帕辛寺",k:"spot",must:1,go:"古城內步行",note:"巨大磚塔遺跡"},
+     {time:"17:00",n:"週日夜市（或夜市巷）",k:"spot",must:1,go:"拉差當儂路",note:"手作工藝＋街頭按摩"},
+     {time:"19:00",n:"鳳飛飛豬腳飯",k:"food",must:1,go:"北門（昌卜克門）",note:"17:00 開攤"}]},
+    {t:"素帖山雙龍寺日",items:[
+     {time:"09:00",n:"雙龍寺",k:"spot",must:1,go:"古城搭紅色雙條車上山 40 分",note:"306 階龍梯或纜車"},
+     {time:"12:00",n:"寧曼路午餐",k:"food",must:1,go:"雙條車下山 30 分",note:"Khao Soi 咖哩麵名店 Khao Soi Nimman"},
+     {time:"14:00",n:"寧曼路咖啡巡禮",k:"spot",must:0,go:"步行",note:"Ristr8to 拉花冠軍"},
+     {time:"17:00",n:"MAYA 商場頂樓夕陽",k:"spot",must:0,go:"步行 5 分",note:""},
+     {time:"19:00",n:"昌康夜市海鮮",k:"food",must:0,go:"Grab 10 分",note:"河畔燒烤"}]},
+    {t:"大象保護營一日",items:[
+     {time:"08:00",n:"大象保護營（無騎乘）",k:"spot",must:1,go:"營區飯店接送 60 分",note:"餵香蕉、泥巴浴、河邊洗澡"},
+     {time:"16:00",n:"回程・古城按摩",k:"spot",must:1,go:"接送回古城",note:"女子監獄按摩中心（更生計畫）"},
+     {time:"19:00",n:"Tha Phae 週末市集或河畔晚餐",k:"food",must:0,go:"塔佩門",note:""}]},
+    {t:"咖啡早午餐 → 返程",items:[
+     {time:"09:00",n:"森林系咖啡早午餐",k:"food",must:0,go:"Grab 至 Baan Kang Wat 藝術村",note:"手作市集＋陶藝"},
+     {time:"12:00",n:"瓦洛洛市場伴手禮",k:"spot",must:0,go:"Grab 15 分",note:"炸豬皮、青辣椒醬"},
+     {time:"14:00",n:"清邁機場",k:"move",must:0,go:"Grab 15 分",note:"國內轉曼谷或直飛回台"}]}]}],
+ notes:[
+  "入境前 72 小時內填 TDAC 數位入境卡（官方免費，認明官網勿用代辦）。",
+  "免簽措施有期限性，出發前一個月確認外交部與泰國官方最新公告。",
+  "寺廟服裝規定嚴格：過膝＋有袖；脫鞋入殿，頭勿高過佛像拍照。",
+  "不要摸任何人的頭（包含小孩）；對皇室言論極度敏感，勿評論。",
+  "自來水不可生飲，便利商店大瓶裝水 ฿10–20。",
+  "防詐：嘟嘟車「大皇宮今天關門我帶你去別的」是經典騙術，直接無視。",
+  "4 月潑水節（宋干節）全國潑水，手機防水袋必備。",
+  "小費文化：床頭小費 ฿20–50、按摩後 ฿50–100。"],
+ packMust:["護照（效期 6 個月以上）","TDAC 入境卡 QR Code 截圖","網路 eSIM","泰銖現金（小額多換）","信用卡","防曬乳（SPF50）","防蚊液（登革熱防範）","腸胃藥＋止瀉藥","訂房／機票證明"],
+ packNice:["手機防水袋（海島／潑水節）","輕薄長褲／披肩（進寺廟）","泳衣＋拖鞋","帽子＋墨鏡","濕紙巾","小背包（市集掃貨）","護照影本（分開放）"],
+ links:[["TDAC 數位入境卡（官方）","https://tdac.immigration.go.th"],["外交部領事事務局（旅遊警示）","https://www.boca.gov.tw"],["泰國觀光局中文網","https://www.tattpe.org.tw"],["Grab App","https://www.grab.com"],["泰銖匯率（台銀牌告）","https://rate.bot.com.tw/xrt"]]}
+};
+
+const COMMON_MUST = ["手機＋充電線","行動電源（≤100Wh 手提上機）","旅遊平安險＋不便險保單（出國）","緊急聯絡人資訊卡"];
+const PREF_TAGS = [["首訪","🌟 第一次去"],["自然","🏞️ 自然風景"],["文化","🏯 歷史文化"],["購物","🛍️ 購物血拼"],["美食","🍜 美食探索"],["親子","👨‍👩‍👧 親子同樂"],["網美","📸 網美打卡"],["放鬆","♨️ 溫泉放鬆"],["主題樂園","🎢 主題樂園"],["家庭","🚗 家庭出遊"]];
+
+/* ════════════════ 狀態 ════════════════ */
+let S = {dest:"jp", startDate:"", days:5, adults:2, kids:0, fx:null, style:1,
+         prices:{}, itin:[], checks:{}, custom:[], prefs:[], wizDone:false};
+
+const $ = id => document.getElementById(id);
+const fmt = n => "NT$ " + Math.round(n).toLocaleString();
+
+function save(){ localStorage.setItem("tripPlanner.v2", JSON.stringify(S));
+  const b=$("savebar"); b.classList.add("show"); clearTimeout(save._t); save._t=setTimeout(()=>b.classList.remove("show"),1200); }
+function load(){ try{ const j=localStorage.getItem("tripPlanner.v2"); if(j) S=Object.assign(S,JSON.parse(j)); }catch(e){} }
+
+/* ════════════════ 初始化 ════════════════ */
+function init(){
+  load();
+  $("destBtns").innerHTML = Object.entries(DB).map(([k,d])=>
+    `<button class="dest-btn" data-d="${k}">${d.flag} ${d.name}</button>`).join("");
+  document.querySelectorAll(".dest-btn").forEach(b=>b.onclick=()=>{S.dest=b.dataset.d; S.fx=null; renderAll(); save();});
+  document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>showTab(t.dataset.t));
+  if(!S.startDate){ const d=new Date(); d.setDate(d.getDate()+30); S.startDate=d.toISOString().slice(0,10); }
+  ["startDate","days","adults","kids"].forEach(id=>{
+    $(id).value = S[id==="startDate"?"startDate":id];
+    $(id).oninput = ()=>{ S[id==="startDate"?"startDate":id] = id==="startDate" ? $(id).value : (+$(id).value||0); renderBudget(); renderItin(); save(); };
+  });
+  $("style").value = S.style; $("style").onchange = ()=>{S.style=+$("style").value; renderBudget(); save();};
+  $("fxRate").oninput = ()=>{S.fx=+$("fxRate").value||0; renderBudget(); save();};
+  $("customItem").onkeydown = e=>{ if(e.key==="Enter") addCustomItem(); };
+  renderAll();
+  if(!S.wizDone) openWiz();   // 第一次使用自動開啟引導
+}
+function showTab(t){
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active", x.dataset.t===t));
+  document.querySelectorAll(".panel").forEach(x=>x.classList.remove("show"));
+  $("p-"+t).classList.add("show");
+}
+
+function renderAll(){
+  const d = DB[S.dest];
+  document.querySelectorAll(".dest-btn").forEach(b=>b.classList.toggle("active", b.dataset.d===S.dest));
+  ["days","adults","kids","startDate"].forEach(id=>$(id).value = S[id==="startDate"?"startDate":id]);
+  $("fxRate").value = S.fx ?? d.rate;
+  $("ov-title").textContent = `${d.flag} ${d.name}行程總覽`;
+  $("ov-cards").innerHTML = d.facts.map(f=>`<div class="card"><h4>${f[0]}</h4><p class="meta">${f[1]}</p></div>`).join("");
+  $("ov-transport").innerHTML = d.transport.map(t=>card(t)).join("");
+  $("ov-stay").innerHTML = d.stay.map(t=>card(t)).join("");
+  $("spotsTitle").textContent = `${d.flag} ${d.name}可玩景點（★＝必去）`;
+  $("spotCards").innerHTML = d.spots.map((s,i)=>spotCard(s,"spot",i)).join("");
+  $("foodCards").innerHTML = d.foods.map((s,i)=>spotCard(s,"food",i)).join("");
+  $("shopCards").innerHTML = (d.shops||[]).map((s,i)=>spotCard(s,"shop",i)).join("");
+  $("notesTitle").textContent = `${d.flag} ${d.name}注意事項`;
+  $("noteList").innerHTML = d.notes.map(n=>`<li class="note-li">${n}</li>`).join("");
+  $("liveLinks").innerHTML = d.links.map(l=>`<li class="note-li"><a href="${l[1]}" target="_blank">${l[0]}</a></li>`).join("");
+  renderRoutes(); renderBudget(); renderPacking(); renderItin();
+}
+const card = t => `<div class="card"><h4>${t.n}</h4><p class="meta">${t.d}</p><div style="margin-top:6px">${(t.t||[]).map(x=>`<span class="tag">${x}</span>`).join("")}</div></div>`;
+function spotCard(s,kind,i){
+  const badge = s.must ? (kind==="food" ? `<span class="badge-must badge-eat">🍜 必吃</span>` : kind==="shop" ? `<span class="badge-must badge-shop">🛍️ 必逛</span>` : `<span class="badge-must">★ 必去</span>`) : "";
+  const go = s.go ? `<div class="go-chip">🚌 ${s.go}</div>` : "";
+  const shopInfo = kind==="shop" ? `<p class="meta" style="margin-top:4px">🕐 ${s.hours}<br><b>必買：</b>${s.buy}</p>` : "";
+  return `<div class="card">${badge}<h4>${s.n}</h4><span class="tag">${s.a}</span><p class="meta" style="margin-top:6px">${s.d}</p>${shopInfo}${go}<div class="btn-row"><button class="btn small ghost" onclick="quickAdd('${kind}',${i})">＋ 加入行程</button></div></div>`;
+}
+
+/* ════════════════ 推薦路線 ════════════════ */
+function renderRoutes(){
+  const d = DB[S.dest];
+  $("routesTitle").textContent = `${d.flag} ${d.name}最佳旅遊路線懶人包`;
+  $("routeCards").innerHTML = d.routes.map((r,ri)=>{
+    const musts = r.plan.flatMap(p=>p.items).filter(i=>i.must);
+    const days = r.plan.map((p,di)=>`
+      <details class="rday" ${di===0?"open":""}>
+        <summary>Day ${di+1}｜${p.t}</summary>
+        ${p.items.map((it,ii)=>`
+          <div class="ritem">
+            <span class="time">${it.time}–${p.items[ii+1]?.time || addMin(it.time,90)}</span>
+            <span class="nm">${it.k==="food"?"🍜":it.k==="move"?"🚄":"📍"} ${it.n}</span>
+            ${it.must?(it.k==="food"?`<span class="b-eat">必吃</span>`:`<span class="b-must">必去</span>`):""}
+            <span class="desc">${it.go?`<span class="go-chip">🚌 ${it.go}</span> `:""}${it.note||""}</span>
+          </div>`).join("")}
+      </details>`).join("");
+    return `<div class="route-card">
+      <div class="route-head">
+        <div>
+          <h4>${r.n}</h4>
+          <div class="meta">⏱️ ${r.days} 天｜🗓️ 最佳季節：${r.best}｜含 ${musts.length} 個必去必吃</div>
+          <div style="margin-top:4px">${r.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+        </div>
+        <button class="btn" onclick="applyRoute(${ri})">⚡ 套用到我的行程</button>
+      </div>
+      <div class="route-body">${days}</div>
+    </div>`;
+  }).join("");
+}
+function applyRoute(ri, silent){
+  const d = DB[S.dest], r = d.routes[ri];
+  const existing = getItin();
+  if(existing.length && !silent && !confirm(`「我的行程」已有 ${existing.length} 筆，套用「${r.n}」會先清空本目的地行程，確定？`)) return;
+  S.itin = S.itin.filter(x=>x.dest!==S.dest);
+  S.days = r.days; $("days").value = r.days;
+  r.plan.forEach((p,di)=>{
+    p.items.forEach((it,ii)=>{
+      const next = p.items[ii+1];
+      S.itin.push({dest:S.dest, day:di+1, time:it.time, end: next ? next.time : addMin(it.time,90),
+        title:(it.k==="food"?"🍜 ":it.k==="move"?"🚄 ":"📍 ")+(it.must?"★":"")+it.n,
+        go:it.go||"", note:it.note||""});
+    });
+  });
+  save(); renderItin(); renderBudget();
+  if(!silent){ showTab("itinerary"); }
+}
+
+/* ════════════════ 預算 ════════════════ */
+const BUDGET_ROWS = [
+  ["flight","機票（來回）／長途交通","每人一次"],
+  ["lodging","住宿","每人每晚"],
+  ["food","餐飲","每人每日"],
+  ["transport","當地交通","每人每日"],
+  ["ticket","景點門票／活動","每人每日"],
+  ["ins","旅遊保險","每人每日"],
+  ["shopping","購物／伴手禮","每人一次"]
+];
+function price(key){
+  const d=DB[S.dest], ov=(S.prices[S.dest]||{})[key];
+  if(ov!=null) return ov;
+  if(key==="shopping") return d.dom?1000:3000;
+  return Math.round((d.cost[key]||0)*S.style);
+}
+function renderBudget(){
+  const d=DB[S.dest], fx=S.fx??d.rate, heads=S.adults+S.kids*0.5, nights=Math.max(S.days-1,0);
+  let total=0;
+  const tb=$("budgetTable").querySelector("tbody");
+  tb.innerHTML = BUDGET_ROWS.map(([key,label,mode])=>{
+    const p=price(key);
+    let qty, qtyTxt;
+    if(mode==="每人一次"){ qty=heads; qtyTxt=`${S.adults}大${S.kids?`+${S.kids}小`:""}`; }
+    else if(key==="lodging"){ qty=heads*nights; qtyTxt=`${S.adults}大${S.kids?`+${S.kids}小`:""} × ${nights} 晚`; }
+    else { qty=heads*S.days; qtyTxt=`${S.adults}大${S.kids?`+${S.kids}小`:""} × ${S.days} 天`; }
+    const sub=p*qty; total+=sub;
+    const fxTxt = (S.dest!=="tw"&&fx>0) ? (sub/fx).toLocaleString(undefined,{maximumFractionDigits:0})+" "+d.cur : "—";
+    return `<tr><td><b>${label}</b><br><small style="color:var(--sub)">${mode}</small></td><td>${qtyTxt}</td>
+      <td class="num"><input type="number" min="0" value="${p}" onchange="setPrice('${key}',this.value)"></td>
+      <td class="num"><b>${fmt(sub)}</b></td><td class="num">${fxTxt}</td></tr>`;
+  }).join("");
+  const grand=total*1.1;
+  $("grandTotal").textContent=fmt(grand);
+  $("perPerson").textContent=S.adults+S.kids>0?fmt(grand/(S.adults+S.kids)):"—";
+  $("fxTotal").textContent=(S.dest!=="tw"&&fx>0)?(grand/fx).toLocaleString(undefined,{maximumFractionDigits:0})+" "+d.cur:"—";
+  return grand;
+}
+function setPrice(key,val){ (S.prices[S.dest]=S.prices[S.dest]||{})[key]=+val||0; renderBudget(); save(); }
+
+/* ════════════════ 行程（逐日分組） ════════════════ */
+function getItin(){ if(!Array.isArray(S.itin)) S.itin=[]; return S.itin.filter(x=>x.dest===S.dest); }
+function dayDate(day){ const d=new Date(S.startDate+"T00:00:00"); d.setDate(d.getDate()+day-1); return d; }
+function addMin(t,m){ let[h,mi]=(t||"09:00").split(":").map(Number); let x=Math.min(h*60+mi+m, 23*60+59); return String(Math.floor(x/60)).padStart(2,"0")+":"+String(x%60).padStart(2,"0"); }
+const esc = s => (s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+function renderItin(){
+  const list=getItin();
+  let html="";
+  for(let day=1; day<=Math.max(S.days,1); day++){
+    const items = list.filter(it=>it.day===day).sort((a,b)=>a.time.localeCompare(b.time));
+    const dateTxt = S.startDate ? dayDate(day).toLocaleDateString("zh-TW",{month:"numeric",day:"numeric",weekday:"short"}) : "";
+    html += `<div class="day-block">
+      <div class="day-head"><span>Day ${day}｜${dateTxt}</span>
+        <button class="btn small" style="background:rgba(255,255,255,.2)" onclick="addItinDay(${day})">＋ 新增</button></div>
+      <div class="day-body">` +
+      (items.length===0 ? `<p class="itin-empty">尚無安排 — 按「＋新增」、或從「🗺️ 推薦路線」「📍 景點美食購物」加入。</p>` :
+       `<div class="itin-row" style="font-size:.75rem;color:var(--sub);font-weight:700"><span>開始</span><span>結束</span><span>行程內容</span><span class="hide-m">🚌 交通建議</span><span class="hide-m">備註</span><span></span></div>`+
+       items.map(it=>{
+        const gi=S.itin.indexOf(it);
+        return `<div class="itin-row">
+          <input type="time" value="${it.time}" onchange="updItin(${gi},'time',this.value)">
+          <input type="time" value="${it.end||addMin(it.time,90)}" onchange="updItin(${gi},'end',this.value)">
+          <input value="${esc(it.title)}" placeholder="行程內容…" onchange="updItin(${gi},'title',this.value)">
+          <input class="hide-m" value="${esc(it.go)}" placeholder="交通方式…" onchange="updItin(${gi},'go',this.value)" style="border-style:dashed;border-color:#34d399;background:#f0fdf4">
+          <input class="hide-m" value="${esc(it.note)}" placeholder="備註" onchange="updItin(${gi},'note',this.value)">
+          <button class="btn small danger" onclick="delItin(${gi})">✕</button></div>`;
+       }).join("")) +
+      `</div></div>`;
+  }
+  $("itinList").innerHTML = html;
+}
+function addItinDay(day){ S.itin.push({dest:S.dest, day, time:"09:00", end:"10:30", title:"", go:"", note:""}); renderItin(); save(); }
+function quickAdd(kind,i){
+  const d=DB[S.dest], s=kind==="spot"?d.spots[i]:kind==="food"?d.foods[i]:d.shops[i];
+  const pre = kind==="food"?"🍜 ":kind==="shop"?"🛍️ ":"📍 ";
+  S.itin.push({dest:S.dest, day:1, time:"09:00", end:"10:30", title:pre+(s.must?"★":"")+s.n, go:s.go||"", note:kind==="shop"?`必買：${s.buy}`:s.a});
+  save(); renderItin();
+  alert(`已加入 Day 1：${s.n}\n請到「🗓️ 我的行程」調整日期時間。`);
+}
+function updItin(gi,k,v){ S.itin[gi][k]=v; save(); renderItin(); }
+function delItin(gi){ S.itin.splice(gi,1); renderItin(); save(); }
+function clearItin(){ if(confirm("確定清空本目的地的所有行程？")){ S.itin=S.itin.filter(x=>x.dest!==S.dest); renderItin(); save(); } }
+
+/* ════════════════ 攜帶物品 ════════════════ */
+function packKey(item){ return S.dest+"|"+item; }
+function renderPacking(){
+  const d=DB[S.dest];
+  const must=[...COMMON_MUST.filter(x=>d.dom?!x.includes("出國"):true), ...d.packMust];
+  $("packMust").innerHTML = must.map(it=>checkRow(it,true)).join("");
+  $("packNice").innerHTML = d.packNice.map(it=>checkRow(it,false)).join("");
+  $("packCustom").innerHTML = (S.custom||[]).map((it,i)=>checkRow(it,false,i)).join("") || `<p style="color:var(--sub);font-size:.85rem">尚無自訂物品</p>`;
+  updProg();
+}
+function checkRow(item,must,customIdx){
+  const k=packKey(item), c=S.checks[k];
+  const del = customIdx!=null?` <button class="btn small danger" onclick="event.preventDefault();delCustom(${customIdx})">✕</button>`:"";
+  return `<label><input type="checkbox" ${c?"checked":""} onchange="toggleCheck('${k.replace(/'/g,"\\'")}')"><span class="${c?"done":""}">${item}${must?'<span class="must">必帶</span>':""}</span>${del}</label>`;
+}
+function toggleCheck(k){ S.checks[k]=!S.checks[k]; renderPacking(); save(); }
+function addCustomItem(){ const v=$("customItem").value.trim(); if(!v) return; (S.custom=S.custom||[]).push(v); $("customItem").value=""; renderPacking(); save(); }
+function delCustom(i){ S.custom.splice(i,1); renderPacking(); save(); }
+function resetChecks(){ if(confirm("確定要清除所有勾選？")){ S.checks={}; renderPacking(); save(); } }
+function updProg(){
+  const boxes=[...document.querySelectorAll("#packMust input,#packNice input,#packCustom input")];
+  const done=boxes.filter(b=>b.checked).length;
+  $("packProg").style.width = boxes.length? (done/boxes.length*100)+"%" : "0%";
+  $("packStat").textContent = `已完成 ${done} / ${boxes.length} 項`;
+}
+
+/* ════════════════ 規劃精靈 ════════════════ */
+let wizStep = 0, wizSel = {dest:null, routeIdx:null};
+function openWiz(){ wizStep=0; wizSel={dest:S.dest, routeIdx:null}; $("wizNext").style.display=""; $("wizOverlay").classList.add("show"); renderWiz(); }
+function closeWiz(){ $("wizOverlay").classList.remove("show"); S.wizDone=true; save(); }
+function wizGo(dir){
+  if(dir>0 && !wizValidate()) return;
+  wizStep += dir;
+  if(wizStep>4){ wizFinish(); return; }
+  if(wizStep<0) wizStep=0;
+  renderWiz();
+}
+function wizValidate(){
+  if(wizStep===1 && !wizSel.dest){ alert("請先選一個目的地 🙂"); return false; }
+  return true;
+}
+function renderWiz(){
+  $("wizSteps").innerHTML = [0,1,2,3,4].map(i=>`<span class="${i<=wizStep?"on":""}"></span>`).join("");
+  $("wizBack").style.visibility = wizStep===0?"hidden":"visible";
+  $("wizNext").textContent = wizStep===4 ? "完成 ✓" : "下一步 →";
+  const B=$("wizBody");
+  if(wizStep===0){
+    B.innerHTML = `<h3>👋 嗨！我來幫你一步步規劃旅程</h3>
+    <p class="sub">只要回答 4 個小問題，就能拿到：推薦路線（含必去景點、必吃美食、交通建議）＋ 預算試算 ＋ 攜帶清單。隨時可按「先跳過」自己逛。</p>
+    <div class="opt-grid">
+      <div class="opt sel"><span class="big-ico">🗺️</span>幫我排行程<small>推薦最佳路線、一鍵套用</small></div>
+      <div class="opt"><span class="big-ico">💰</span>算旅費<small>精靈完成後直接看到總預算</small></div>
+      <div class="opt"><span class="big-ico">🎒</span>準備清單<small>依目的地自動產生必帶物品</small></div>
+    </div>`;
+  }
+  if(wizStep===1){
+    B.innerHTML = `<h3>Q1．想去哪裡玩？</h3><p class="sub">點選一個目的地（之後隨時可換）</p>
+    <div class="opt-grid">` + Object.entries(DB).map(([k,d])=>
+      `<div class="opt ${wizSel.dest===k?"sel":""}" onclick="wizPickDest('${k}')"><span class="big-ico">${d.flag}</span>${d.name}<small>${d.dom?"說走就走免簽證":"飛行約 2.5–4 小時"}</small></div>`).join("")+`</div>`;
+  }
+  if(wizStep===2){
+    B.innerHTML = `<h3>Q2．什麼時候出發？玩幾天？幾個人？</h3><p class="sub">這些會用來計算預算與行事曆日期</p>
+    <div class="field-row">
+      <div class="field"><label>出發日期</label><input type="date" id="wizDate" value="${S.startDate}"></div>
+      <div class="field"><label>天數</label><input type="number" id="wizDays" min="1" max="30" value="${S.days}"></div>
+      <div class="field"><label>大人</label><input type="number" id="wizAdults" min="1" max="20" value="${S.adults}"></div>
+      <div class="field"><label>小孩</label><input type="number" id="wizKids" min="0" max="20" value="${S.kids}"></div>
+    </div>
+    <h3 style="margin-top:8px">旅行預算風格？</h3>
+    <div class="opt-grid">
+      ${[["0.8","💸 省錢背包","青旅＋小吃"],["1","🏨 標準舒適","三四星＋名店"],["1.5","✨ 豪華享受","五星＋大餐"]].map(([v,t,s])=>
+        `<div class="opt ${String(S.style)===v?"sel":""}" onclick="wizPickStyle('${v}',this)">${t}<small>${s}</small></div>`).join("")}
+    </div>`;
+  }
+  if(wizStep===3){
+    B.innerHTML = `<h3>Q3．這趟旅行你最想要什麼？</h3><p class="sub">可複選，會用來推薦最適合的路線</p>
+    <div class="opt-grid">` + PREF_TAGS.map(([k,label])=>
+      `<div class="opt ${S.prefs.includes(k)?"sel":""}" onclick="wizTogglePref('${k}',this)">${label}</div>`).join("")+`</div>`;
+  }
+  if(wizStep===4){
+    wizCollectStep2();
+    const d=DB[wizSel.dest], ranked = d.routes.map((r,i)=>({r,i,score:r.tags.filter(t=>S.prefs.includes(t)).length*2 - Math.abs(r.days-S.days)*0.5}))
+      .sort((a,b)=>b.score-a.score);
+    if(wizSel.routeIdx===null) wizSel.routeIdx = ranked[0].i;
+    B.innerHTML = `<h3>Q4．為你推薦的最佳路線 🎯</h3><p class="sub">依你的偏好排序，點選一條，完成後自動排好逐日行程（含交通建議）</p>` +
+      ranked.map(({r,i},rank)=>{
+        const musts=r.plan.flatMap(p=>p.items).filter(x=>x.must).length;
+        return `<div class="wiz-route ${wizSel.routeIdx===i?"sel":""}" onclick="wizPickRoute(${i})">
+          <h5>${rank===0?"🥇 最推薦｜":""}${r.n}</h5>
+          <div class="meta">⏱️ ${r.days} 天｜🗓️ ${r.best}｜★必去＋🍜必吃共 ${musts} 個</div>
+          <div style="margin-top:3px">${r.tags.map(t=>`<span class="tag">${t}</span>`).join("")}</div>
+        </div>`;}).join("") +
+      `<div class="wiz-route ${wizSel.routeIdx===-1?"sel":""}" onclick="wizPickRoute(-1)"><h5>✏️ 不用排，我想自己慢慢規劃</h5><div class="meta">精靈只幫你算預算＋準備清單</div></div>`;
+  }
+}
+function wizPickDest(k){ wizSel.dest=k; wizSel.routeIdx=null; renderWiz(); }
+function wizPickStyle(v,el){ S.style=+v; document.querySelectorAll("#wizBody .opt").forEach(o=>{ if(o.parentElement===el.parentElement) o.classList.remove("sel"); }); el.classList.add("sel"); }
+function wizTogglePref(k,el){ const i=S.prefs.indexOf(k); if(i>=0)S.prefs.splice(i,1); else S.prefs.push(k); el.classList.toggle("sel"); }
+function wizPickRoute(i){ wizSel.routeIdx=i; renderWiz(); }
+function wizCollectStep2(){
+  const g=id=>document.getElementById(id);
+  if(g("wizDate")){ S.startDate=g("wizDate").value||S.startDate; S.days=+g("wizDays").value||S.days; S.adults=+g("wizAdults").value||1; S.kids=+g("wizKids").value||0; }
+}
+function wizFinish(){
+  S.dest = wizSel.dest;
+  if(wizSel.routeIdx!=null && wizSel.routeIdx>=0) applyRoute(wizSel.routeIdx, true);
+  renderAll();
+  const grand = renderBudget();
+  const d=DB[S.dest], itin=getItin();
+  $("wizSteps").innerHTML="";
+  $("wizBack").style.visibility="hidden"; $("wizNext").style.display="none";
+  $("wizBody").innerHTML = `<div class="wiz-done">
+    <div class="emoji">🎉</div><h3>規劃完成！</h3>
+    <div class="wiz-sum">
+      <b>${d.flag} ${d.name}</b>｜${S.startDate} 出發｜${S.days} 天｜${S.adults} 大 ${S.kids} 小<br>
+      💰 預估總預算 <b style="color:var(--accent);font-size:1.2rem">${fmt(grand)}</b>（含 10% 預備金，可到「預算試算」微調單價）<br>
+      ${itin.length?`🗓️ 已自動排好 <b>${itin.length}</b> 個行程點（含交通建議），到「我的行程」微調`:`🗓️ 到「推薦路線」或「景點美食」開始挑選`}<br>
+      🎒 攜帶清單已備好 — 出發前逐項打勾
+    </div>
+    <div class="btn-row" style="justify-content:center">
+      <button class="btn big" onclick="closeWiz();showTab('itinerary')">看我的行程 →</button>
+      <button class="btn big ghost" onclick="closeWiz();showTab('budget')">看預算明細</button>
+    </div></div>`;
+  S.wizDone=true; save();
+}
+
+/* ════════════════ 匯出 ════════════════ */
+function dl(name, content, type){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type})); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+}
+function exportICS(){
+  const d=DB[S.dest], list=getItin();
+  if(!list.length){ alert("行程是空的，請先套用推薦路線或新增行程。"); return; }
+  const pad=n=>String(n).padStart(2,"0");
+  let ics="BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//TripPlanner//ZH-TW//\r\nCALSCALE:GREGORIAN\r\n";
+  list.forEach((it,i)=>{
+    const dt=dayDate(it.day), [h,m]=it.time.split(":").map(Number);
+    const endT=/^\d{2}:\d{2}$/.test(it.end||"") ? it.end : addMin(it.time,60);
+    const [eh,em]=endT.split(":").map(Number);
+    const st=`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(h)}${pad(m)}00`;
+    const en=`${dt.getFullYear()}${pad(dt.getMonth()+1)}${pad(dt.getDate())}T${pad(eh)}${pad(em)}00`;
+    const desc=[it.go?("交通："+it.go):"", it.note||""].filter(Boolean).join("｜");
+    ics+=`BEGIN:VEVENT\r\nUID:trip-${S.dest}-${i}-${st}@tripplanner\r\nDTSTART:${st}\r\nDTEND:${en}\r\nSUMMARY:${(d.flag+" "+it.title).replace(/[,;]/g," ")}\r\nDESCRIPTION:${desc.replace(/[,;]/g," ")}\r\nEND:VEVENT\r\n`;
+  });
+  ics+="END:VCALENDAR\r\n";
+  dl(`${d.name}行程.ics`, ics, "text/calendar;charset=utf-8");
+}
+function exportCSV(){
+  const d=DB[S.dest], fx=S.fx??d.rate, heads=S.adults+S.kids*0.5, nights=Math.max(S.days-1,0);
+  let rows=[["旅遊規劃試算表"],[`目的地,${d.name}`],[`出發日期,${S.startDate}`],[`天數,${S.days}`],[`人數,${S.adults}大+${S.kids}小`],[],
+    ["【預算明細】"],["項目","計算方式","單價TWD","小計TWD"]];
+  let total=0;
+  BUDGET_ROWS.forEach(([key,label,mode])=>{
+    const p=price(key);
+    const qty = mode==="每人一次"?heads : key==="lodging"?heads*nights : heads*S.days;
+    const sub=p*qty; total+=sub;
+    rows.push([label,mode,p,Math.round(sub)]);
+  });
+  rows.push(["預備金 10%","",,Math.round(total*0.1)],["總計","",,Math.round(total*1.1)],[]);
+  rows.push(["【行程】"],["天","開始","結束","內容","交通","備註"]);
+  getItin().sort((a,b)=>a.day-b.day||a.time.localeCompare(b.time)).forEach(it=>rows.push([`D${it.day}`,it.time,it.end||"",it.title,it.go,it.note]));
+  rows.push([],["【攜帶物品】"],["物品","狀態"]);
+  document.querySelectorAll("#packMust label,#packNice label,#packCustom label").forEach(l=>{
+    const cb=l.querySelector("input"); if(!cb) return;
+    rows.push([l.textContent.replace("必帶","(必帶)").replace("✕","").trim(), cb.checked?"✓已備":"未備"]);
+  });
+  const csv="﻿"+rows.map(r=>(r||[]).map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  dl(`${d.name}旅遊試算.csv`, csv, "text/csv;charset=utf-8");
+}
+function shareText(){
+  const d=DB[S.dest], list=getItin().sort((a,b)=>a.day-b.day||a.time.localeCompare(b.time));
+  const grand=renderBudget();
+  let t=`${d.flag}【${d.name}旅遊計畫】\n📅 ${S.startDate} 出發｜${S.days} 天｜${S.adults} 大 ${S.kids} 小\n💰 預估總預算 ${fmt(grand)}（每人約 ${fmt(grand/Math.max(S.adults+S.kids,1))}）\n`;
+  let day=0;
+  list.forEach(it=>{
+    if(it.day!==day){ day=it.day;
+      const ds = S.startDate ? dayDate(day).toLocaleDateString("zh-TW",{month:"numeric",day:"numeric",weekday:"short"}) : "";
+      t+=`\n━━ Day ${day}（${ds}）━━\n`; }
+    t+=`${it.time}–${it.end||""} ${it.title}\n`;
+    if(it.go) t+=`　🚌 ${it.go}\n`;
+  });
+  if(!list.length) t+="\n（行程規劃中，敬請期待！）\n";
+  t+=`\n— 由旅遊規劃系統產生`;
+  return t;
+}
+function copyShareText(){
+  const t=shareText();
+  (navigator.clipboard?.writeText(t) || Promise.reject()).then(
+    ()=>alert("已複製！直接到 LINE 貼上即可分享 🎉"),
+    ()=>{ prompt("手動複製以下文字：", t); });
+}
+function exportJSON(){ dl("旅遊規劃備份.json", JSON.stringify(S,null,2), "application/json"); }
+function importJSON(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ try{ S=JSON.parse(r.result); save(); init(); alert("已還原備份！"); }catch(e){ alert("檔案格式錯誤"); } };
+  r.readAsText(f);
+}
+
+init();
+</script>
+</body>
+</html>
